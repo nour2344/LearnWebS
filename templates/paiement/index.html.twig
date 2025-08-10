@@ -1,0 +1,87 @@
+{% extends 'base_module.html.twig' %}
+
+{% block title %}Liste des Paiements{% endblock %}
+
+{% block module_content %}
+
+<style>
+  h1 { font-weight: 700; color: #333; }
+  .table thead th, .table td { text-align: center; vertical-align: middle; }
+  .btn-icon { display: flex; align-items: center; gap: 5px; }
+  .btn-add { background-color: #4caf50; color: white; font-weight: bold; }
+  .btn-add:hover { background-color: #45a049; }
+  .btn-edit { background-color: #2196f3; color: white; }
+  .btn-edit:hover { background-color: #1976d2; }
+  .btn-delete { background-color: #f44336; color: white; }
+  .btn-delete:hover { background-color: #c62828; }
+  .container { animation: fadeIn 0.3s ease-in-out; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(10px);} to { opacity:1; transform: translateY(0);} }
+</style>
+
+<div class="container mt-5">
+  <h1 class="mb-4 text-center">💰 Liste des Paiements</h1>
+
+  {# 🔎 Search bar (by student's name) #}
+  <div class="row g-2 align-items-end mb-3">
+    <div class="col-sm-4">
+      <label for="search_student" class="form-label">Rechercher par élève (nom ou prénom)</label>
+      <input id="search_student" name="q" type="text" class="form-control" placeholder="ex: Dupont, Lina…">
+    </div>
+  </div>
+
+  <table class="table table-hover table-bordered shadow-sm">
+    <thead class="table-dark">
+      <tr>
+        <th>🏷️ Type</th>
+        <th>💵 Montant</th>
+        <th>📆 Date</th>
+        <th>📝 Note</th>
+        <th>👤 Étudiant</th>
+        <th>⚙️ Actions</th>
+      </tr>
+    </thead>
+
+    {# ✅ Single tbody that we replace via AJAX #}
+    <tbody id="paiements_tbody">
+      {% include 'paiement/_rows.html.twig' with { paiements: paiements } %}
+    </tbody>
+  </table>
+
+  <div class="d-flex justify-content-center gap-4 mt-4">
+    <a href="{{ path('home') }}" class="btn btn-add btn-lg">⬅️ Accueil</a>
+    <a href="{{ path('paiement_new') }}" class="btn btn-add btn-lg">➕ Ajouter un paiement</a>
+  </div>
+
+  <div class="d-flex justify-content-center mt-4">
+    {{ knp_pagination_render(paiements) }}
+  </div>
+</div>
+
+<script>
+(function () {
+  const input = document.getElementById('search_student');
+  const tbody = document.getElementById('paiements_tbody');
+  if (!input || !tbody) return;
+
+  let t;
+  function debounce(fn){ clearTimeout(t); t = setTimeout(fn, 250); }
+
+  function fetchRows() {
+    const params = new URLSearchParams();
+    if (input.value.trim() !== '') params.set('q', input.value.trim());
+    // always reset to first page on new search
+    params.set('page', '1');
+
+    fetch('{{ path("paiement_index") }}?' + params.toString(), {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(html => { tbody.innerHTML = html; })
+      .catch(console.error);
+  }
+
+  input.addEventListener('input', () => debounce(fetchRows));
+})();
+</script>
+
+{% endblock %}

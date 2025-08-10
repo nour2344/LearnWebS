@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Impression Recette</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 40px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .recette-box {
+            background-color: white;
+            padding: 30px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: left;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #1f2937;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .value {
+            color: #374151;
+        }
+
+        .row {
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .print-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .print-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="recette-box">
+        <h1>🧾 Détail de la Recette</h1>
+
+        <div class="row"><span class="label">Source :</span> <span class="value">{{ recette.source.value }}</span></div>
+        <div class="row"><span class="label">Montant :</span> <span class="value">{{ recette.montantR }} DT</span></div>
+        <div class="row"><span class="label">Date :</span> <span class="value">{{ recette.dateR ? recette.dateR|date('d/m/Y') : '' }}</span></div>
+        <div class="row"><span class="label">Note :</span> <span class="value">{{ recette.noteR }}</span></div>
+    </div>
+
+    <button class="print-btn" onclick="window.print()">🖨️ Imprimer</button>
+</body>
+</html>

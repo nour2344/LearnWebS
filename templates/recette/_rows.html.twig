@@ -1,0 +1,22 @@
+{% for recette in recettes %}
+<tr>
+  <td>{{ recette.source.label() }}</td>
+  <td>{{ recette.montantR }} DT</td>
+  <td>{{ recette.dateR ? recette.dateR|date('d/m/Y') }}</td>
+  <td>{{ recette.noteR }}</td>
+  <td>
+    <div class="d-flex justify-content-center gap-2">
+      <a href="{{ path('recette_edit', {'id': recette.id}) }}" class="btn btn-sm btn-edit btn-icon">✏️ Modifier</a>
+      <a href="{{ path('recette_show', {'id': recette.id}) }}" class="btn btn-info btn-sm">🖨️ Imprimer</a>
+      <form method="post" action="{{ path('recette_delete', {'id': recette.id}) }}" onsubmit="return confirm('Confirmer la suppression ?');">
+        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ recette.id) }}">
+        <button class="btn btn-sm btn-delete btn-icon">🗑 Supprimer</button>
+      </form>
+    </div>
+  </td>
+</tr>
+{% else %}
+<tr>
+  <td colspan="5" class="text-center">Aucune recette trouvée.</td>
+</tr>
+{% endfor %}

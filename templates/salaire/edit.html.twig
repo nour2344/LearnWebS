@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier Salaire{% endblock %}
+
+{% block body %}
+    <h2 class="text-warning mb-4">✏ Modifier le salaire</h2>
+
+    {{ form_start(form) }}
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.mois) }}
+                {{ form_widget(form.mois, {'attr': {'class': 'form-control'}}) }}
+            </div>
+
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.montant) }}
+                {{ form_widget(form.montant, {'attr': {'class': 'form-control'}}) }}
+            </div>
+
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.dateP) }}
+                {{ form_widget(form.dateP, {'attr': {'class': 'form-control'}}) }}
+            </div>
+
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.personnel) }}
+                {{ form_widget(form.personnel, {'attr': {'class': 'form-select'}}) }}
+            </div>
+        </div>
+
+        <button class="btn btn-warning">Mettre à jour</button>
+        <a href="{{ path('salaire_index') }}" class="btn btn-secondary">↩ Retour</a>
+    {{ form_end(form) }}
+
+    <hr>
+{% endblock %}

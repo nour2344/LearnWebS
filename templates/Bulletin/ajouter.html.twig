@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ajouter une note{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="card shadow p-4">
+        <h2 class="mb-4 text-primary">
+            <i class="fas fa-plus-circle"></i> Ajouter une note pour {{ etudiant.nom }} {{ etudiant.prenom }}
+        </h2>
+
+        {{ form_start(form) }}
+            <div class="mb-3">
+                {{ form_label(form.matiere, "📘 Matière") }}
+                {{ form_widget(form.matiere, { 'attr': {'placeholder': 'Ex : Mathématiques', 'class': 'form-control'} }) }}
+            </div>
+
+            <div class="mb-3">
+                {{ form_label(form.note, "📝 Note (/20)") }}
+                {{ form_widget(form.note, { 'attr': {'placeholder': 'Ex : 15.5', 'class': 'form-control'} }) }}
+            </div>
+
+            <div class="mb-3">
+                {{ form_label(form.date, "📅 Date du bulletin") }}
+                {{ form_widget(form.date, { 'attr': {'class': 'form-control'} }) }}
+            </div>
+
+            <div class="mb-3">
+                {{ form_label(form.semestre, "📚 Semestre") }}
+                {{ form_widget(form.semestre, { 'attr': {'placeholder': 'Ex : S1, S2', 'class': 'form-control'} }) }}
+            </div>
+
+            <button class="btn btn-success mt-3">
+                <i class="fas fa-save"></i> Enregistrer
+            </button>
+        {{ form_end(form) }}
+
+        <a href="{{ path('bulletin_by_etudiant', { id: etudiant.id }) }}" class="btn btn-secondary mt-3">
+            ⬅ Retour
+        </a>
+    </div>
+</div>
+{% endblock %}

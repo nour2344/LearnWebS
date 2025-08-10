@@ -1,0 +1,22 @@
+{% for paiement in paiements %}
+<tr>
+    <td>{{ paiement.typePaiement.label() }}</td>
+    <td>{{ paiement.montantP }} DT</td>
+    <td>{{ paiement.dateP ? paiement.dateP|date('d/m/Y') }}</td>
+    <td>{{ paiement.note }}</td>
+    <td>{{ paiement.etudiant ? paiement.etudiant.nom ~ ' ' ~ paiement.etudiant.prenom }}</td>
+    <td>
+        <div class="d-flex justify-content-center gap-2">
+            <a href="{{ path('paiement_edit', {'id': paiement.id}) }}" class="btn btn-sm btn-edit btn-icon">✏️ Modifier</a>
+            <form method="post" action="{{ path('paiement_delete', {'id': paiement.id}) }}" onsubmit="return confirm('Confirmer la suppression ?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ paiement.id) }}">
+                <button class="btn btn-sm btn-delete btn-icon">🗑 Supprimer</button>
+            </form>
+        </div>
+    </td>
+</tr>
+{% else %}
+<tr>
+    <td colspan="6" class="text-center">Aucun paiement trouvé.</td>
+</tr>
+{% endfor %}

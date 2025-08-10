@@ -1,0 +1,23 @@
+# config/services.yaml
+parameters: {}
+
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+
+  # make classes in src/ available as services
+  App\:
+    resource: '../src/'
+    exclude:
+      - '../src/DependencyInjection/'
+      - '../src/Entity/'
+      - '../src/Kernel.php'
+      # - '../src/Tests/'   # optional
+
+  # register the Twig extension
+  App\Twig\LatePaymentsExtension:
+    arguments:
+      $repo: '@App\Repository\SalaireRepository'
+    tags:
+      - 'twig.extension'

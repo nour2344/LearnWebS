@@ -1,0 +1,162 @@
+{% extends 'base_module.html.twig' %}
+
+{% block title %}Liste des Étudiants{% endblock %}
+
+{% block module_content %}
+
+<style>
+    h1 { font-weight: 700; }
+    .table thead th { vertical-align: middle; text-align: center; }
+    .table td, .table th { vertical-align: middle; text-align: center; }
+    .btn-icon { display: flex; align-items: center; gap: 5px; }
+    .btn-add { background-color: #4caf50; color: white; font-weight: bold; }
+    .btn-add:hover { background-color: #45a049; }
+    .btn-edit { background-color: #2196f3; color: white; }
+    .btn-edit:hover { background-color: #1976d2; }
+    .btn-delete { background-color: #f44336; color: white; }
+    .btn-delete:hover { background-color: #c62828; }
+    .container { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(10px);} to { opacity:1; transform: translateY(0);} }
+</style>
+
+<div class="container mt-5">
+    <h1 class="mb-4 text-center">📋 Liste des Étudiants</h1>
+
+    {# Bandeaux (optionnels) #}
+    {% if overdue is defined and overdue|length > 0 %}
+        <div class="alert alert-danger" role="alert">
+            ⚠️ {{ overdue|length }} étudiant(s) impayé(s) (mois courant) et en retard.
+        </div>
+    {% endif %}
+    {% if dueSoon is defined and dueSoon|length > 0 %}
+        <div class="alert alert-warning" role="alert">
+            ⏰ {{ dueSoon|length }} étudiant(s) à régler dans les 7 jours.
+        </div>
+    {% endif %}
+<div class="mb-3 row">
+  <div class="col"><input type="text" id="f_nom" class="form-control" placeholder="Nom"></div>
+  <div class="col"><input type="text" id="f_prenom" class="form-control" placeholder="Prénom"></div>
+  <div class="col"><input type="text" id="f_classe" class="form-control" placeholder="Classe"></div>
+</div>
+
+    <table class="table table-hover table-bordered shadow-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>👤 Nom</th>
+                <th>🧍 Prénom</th>
+                <th>🏫 Classe</th>
+                <th>🎂 Naissance</th>
+                <th>📞 Téléphone</th>
+                <th>📅 Inscription</th>
+                <th>✔️ Statut</th>
+                <th>⚙️ Actions</th>
+            </tr>
+        </thead>
+
+        <tbody id="etudiants_table_body">
+    {% include 'etudiant/_table_rows.html.twig' with { 'etudiants': pagination } %}
+  </tbody>
+    </table>
+
+    <div class="d-flex justify-content-center gap-4 mt-4">
+        <a href="{{ path('home') }}" class="btn btn-add btn-lg">⬅️ Accueil</a>
+        <a href="{{ path('etudiant_new') }}" class="btn btn-add btn-lg ms-2">➕ Ajouter un étudiant</a>
+    </div>
+
+    <div class="d-flex justify-content-center mt-4">
+        {{ knp_pagination_render(pagination) }}
+    </div>
+</div>
+
+  <script>
+(function () {
+  const fNom    = document.getElementById('f_nom');
+  const fPrenom = document.getElementById('f_prenom');
+  const fClasse = document.getElementById('f_classe');
+  const tbody   = document.getElementById('etudiants_table_body');
+  const pager   = document.getElementById('students_pager');
+
+  let t, currentPage = 1;
+
+  function trigger() { clearTimeout(t); t = setTimeout(() => fetchPage(1), 250); }
+
+  function fetchPage(page) {
+    currentPage = page;
+    const params = new URLSearchParams({
+      nom: fNom.value || '',
+      prenom: fPrenom.value || '',
+      classe: fClasse.value || '',
+      page: page
+    });
+
+    fetch('{{ path("etudiant_index") }}?' + params.toString(), {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(({ rows, page, pages }) => {
+        tbody.innerHTML = rows.map(r => rowHtml(r)).join('') || `<tr><td colspan="8" class="text-center">Aucun étudiant trouvé.</td></tr>`;
+        renderPager(page, pages);
+      })
+      .catch(console.error);
+  }
+
+  function statusBadge(st) {
+    if (st.paidThisMonth) return '<span class="badge bg-success">Payé (mois courant)</span>';
+    if (st.overdueDays !== null) return `<span class="badge bg-danger">En retard ${st.overdueDays} j</span>`;
+    if (st.dueInDays !== null && st.dueInDays <= 7) return `<span class="badge bg-warning text-dark">Dans ${st.dueInDays} j</span>`;
+    return '<span class="badge bg-secondary">Non payé</span>';
+  }
+
+  function rowHtml(r) {
+    return `
+      <tr>
+        <td>${r.nom ?? ''}</td>
+        <td>${r.prenom ?? ''}</td>
+        <td>${r.classe ?? ''}</td>
+        <td>${r.dateN ?? ''}</td>
+        <td>${r.numTel ?? ''}</td>
+        <td>${r.dateInscription ?? ''}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td>
+          <div class="d-flex justify-content-center gap-2">
+            <form method="post" action="{{ path('etudiant_toggle_paiement', {'id': 'ID_PLACEHOLDER'}) }}".replace('ID_PLACEHOLDER', r.id)>
+              <input type="hidden" name="_token" value="{{ csrf_token('toggle_etudiant_') }}${r.id}">
+              <div class="form-check form-switch d-flex align-items-center">
+                <input class="form-check-input" type="checkbox" ${r.status.paidThisMonth ? 'checked' : ''} onchange="this.form.submit()">
+                <label class="form-check-label ms-2">${r.status.paidThisMonth ? 'Payé' : 'Non payé'}</label>
+              </div>
+            </form>
+            <a href="{{ path('etudiant_edit', {'id': 'ID2'}) }}".replace('ID2', r.id) class="btn btn-sm btn-edit btn-icon">✏️ Modifier</a>
+            <form method="post" action="{{ path('etudiant_delete', {'id': 'ID3'}) }}".replace('ID3', r.id) onsubmit="return confirm('Confirmer la suppression ?');">
+              <input type="hidden" name="_token" value="{{ csrf_token('delete') }}${r.id}">
+              <button class="btn btn-sm btn-delete btn-icon">🗑 Supprimer</button>
+            </form>
+            <a href="{{ path('bulletin_by_etudiant', {'id': 'ID4'}) }}".replace('ID4', r.id) class="btn btn-warning">📄 Bulletin</a>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  function renderPager(page, pages) {
+    if (!pager) return;
+    if (pages <= 1) { pager.innerHTML = ''; return; }
+    let html = '';
+    for (let p=1; p<=pages; p++) {
+      html += `<li class="page-item ${p===page?'active':''}">
+                 <button class="page-link" data-p="${p}">${p}</button>
+               </li>`;
+    }
+    pager.innerHTML = html;
+    pager.querySelectorAll('button[data-p]').forEach(btn => {
+      btn.addEventListener('click', e => fetchPage(parseInt(e.target.dataset.p, 10)));
+    });
+  }
+
+  fNom.addEventListener('input', trigger);
+  fPrenom.addEventListener('input', trigger);
+  fClasse.addEventListener('input', trigger);
+})();
+</script>
+
+{% endblock %}

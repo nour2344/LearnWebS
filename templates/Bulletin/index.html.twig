@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Bulletin de {{ etudiant.nom }}{% endblock %}
+
+{% block body %}
+<h2>📋 Bulletin de {{ etudiant.nom }} {{ etudiant.prenom }}</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Matière</th>
+            <th>Note</th>
+            <th>Date</th>
+            <th>Semestre</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for b in bulletins %}
+            <tr>
+                <td>{{ b.matiere }}</td>
+                <td>{{ b.note }}</td>
+                <td>{{ b.date|date('d/m/Y') }}</td>
+                <td>{{ b.semestre }}</td>
+                <td>
+                    <a href="{{ path('bulletin_edit', { id: b.id }) }}" class="btn btn-sm btn-warning">✏️ Modifier</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="5">Aucune note trouvée.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{{ path('bulletin_ajouter', { id: etudiant.id }) }}" class="btn btn-success">➕ Ajouter une note</a>
+
+<a href="{{ path('bulletin_imprimer', { id: etudiant.id }) }}" class="btn btn-secondary">
+    🖨️ Imprimer
+</a>
+
+<a href="{{ path('etudiant_index') }}" class="btn btn-secondary">⬅ Retour</a>
+{% endblock %}

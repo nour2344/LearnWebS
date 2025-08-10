@@ -1,0 +1,129 @@
+{% extends 'base_module.html.twig' %}
+
+{% block title %}Liste des Dépenses{% endblock %}
+
+{% block module_content %}
+
+
+
+<style>
+
+
+    h1 {
+        font-weight: 700;
+    }
+
+    .table thead th {
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .table td, .table th {
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .btn-icon {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-add {
+        background-color: #4caf50;
+        color: white;
+        font-weight: bold;
+    }
+
+    .btn-add:hover {
+        background-color: #45a049;
+    }
+
+    .btn-edit {
+        background-color: #2196f3;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background-color: #1976d2;
+    }
+
+    .btn-delete {
+        background-color: #f44336;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background-color: #c62828;
+    }
+
+    .container {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+<div class="container mt-5">
+
+<h1 class="mb-4 text-center">📋 Liste des Dépenses</h1>
+ {# 🔎 Filtre Catégorie #}
+  <div class="row g-2 align-items-end mb-3">
+    <div class="col-sm-4">
+      <label class="form-label" for="f_categorie">Catégorie</label>
+      <select id="f_categorie" name="categorie" class="form-select">
+        <option value="">— Toutes —</option>
+        {% for c in categorieChoices %}
+          <option value="{{ c.value }}" {{ currentCategorie == c.value ? 'selected' : '' }}>
+            {{ c.label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+    <table class="table table-hover table-bordered shadow-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>📂 Catégorie</th>
+                <th>💵 Montant</th>
+                <th>📅 Date</th>
+                <th>📝 Note</th>
+                <th>⚙️ Actions</th>
+            </tr>
+        </thead>
+        <tbody id="depenses_tbody">
+      {% include 'depense/_rows.html.twig' with { depenses: depenses } %}
+    </tbody>
+  </table>
+
+  <div class="d-flex justify-content-center gap-4 mt-4">
+    <a href="{{ path('home') }}" class="btn btn-add btn-lg">⬅️ Accueil</a>
+    <a href="{{ path('depense_new') }}" class="btn btn-add btn-lg">➕ Ajouter une dépense</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  const catEl = document.getElementById('f_categorie');
+  const tbody = document.getElementById('depenses_tbody');
+
+  function fetchRows() {
+    const params = new URLSearchParams();
+    if (catEl.value !== '') params.set('categorie', catEl.value);
+    params.set('page', '1'); // reset page on filter
+
+    fetch('{{ path("depense_index") }}?' + params.toString(), {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(r => r.text())
+      .then(html => { tbody.innerHTML = html; })
+      .catch(console.error);
+  }
+
+  catEl.addEventListener('change', fetchRows);
+})();
+</script>
+{% endblock %}

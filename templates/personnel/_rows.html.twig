@@ -1,0 +1,22 @@
+{% for personnel in personnels %}
+<tr>
+  <td>{{ personnel.nomP }}</td>
+  <td>{{ personnel.prenomP }}</td>
+  <td>{{ personnel.role.value }}</td>
+  <td>{{ personnel.salaire }} DT</td>
+  <td>{{ personnel.dateRecrutement ? personnel.dateRecrutement|date('d/m/Y') }}</td>
+  <td>
+    <div class="d-flex justify-content-center gap-2">
+      <a href="{{ path('personnel_edit', {'id': personnel.id}) }}" class="btn btn-sm btn-edit btn-icon">✏️ Modifier</a>
+      <form method="post" action="{{ path('personnel_delete', {'id': personnel.id}) }}" onsubmit="return confirm('Confirmer la suppression ?');">
+        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ personnel.id) }}">
+        <button class="btn btn-sm btn-delete btn-icon">🗑 Supprimer</button>
+      </form>
+    </div>
+  </td>
+</tr>
+{% else %}
+<tr>
+  <td colspan="6" class="text-center">Aucun membre du personnel trouvé.</td>
+</tr>
+{% endfor %}

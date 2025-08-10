@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle dépense{% endblock %}
+
+{% block body %}
+    <h2 class="text-primary mb-4">➕ Ajouter une dépense</h2>
+
+    {{ form_start(form) }}
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.categorie) }}
+                {{ form_widget(form.categorie, {'attr': {'class': 'form-select'}}) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.montantD) }}
+                {{ form_widget(form.montantD, {'attr': {'class': 'form-control'}}) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.dateD) }}
+                {{ form_widget(form.dateD, {'attr': {'class': 'form-control'}}) }}
+            </div>
+            <div class="col-12 mb-3">
+                {{ form_label(form.description) }}
+                {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': 4}}) }}
+            </div>
+        </div>
+
+        <button class="btn btn-primary">Enregistrer</button>
+        <a href="{{ path('depense_index') }}" class="btn btn-secondary">↩ Retour</a>
+    {{ form_end(form) }}
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">📊 Tableau de bord financier</h2>
+
+    <div class="row">
+        <!-- Revenus -->
+        <div class="col-md-4 mb-3">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    💰 Revenus (Madakhil)
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li>📅 Jour : <strong>{{ dailyIncome }} DT</strong></li>
+                        <li>📅 Mois : <strong>{{ monthlyIncome }} DT</strong></li>
+                        <li>📅 Année : <strong>{{ yearlyIncome }} DT</strong></li>
+                        <li>📊 <strong>Total : {{ totalIncome }} DT</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dépenses -->
+        <div class="col-md-4 mb-3">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    💸 Dépenses (Masarif)
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li>📅 Jour : <strong>{{ dailyExpense }} DT</strong></li>
+                        <li>📅 Mois : <strong>{{ monthlyExpense }} DT</strong></li>
+                        <li>📅 Année : <strong>{{ yearlyExpense }} DT</strong></li>
+                        <li>📊 <strong>Total : {{ totalExpense }} DT</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solde net -->
+        <div class="col-md-4 mb-3">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    📈 Solde Net (Da5l Safi)
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li>📅 Jour : <strong>{{ netDaily }} DT</strong></li>
+                        <li>📅 Mois : <strong>{{ netMonthly }} DT</strong></li>
+                        <li>📅 Année : <strong>{{ netYearly }} DT</strong></li>
+                        <li>📊 <strong>Total : {{ netTotal }} DT</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

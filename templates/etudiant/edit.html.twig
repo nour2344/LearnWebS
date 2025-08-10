@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier étudiant{% endblock %}
+
+{% block body %}
+    <h2 class="text-warning mb-4">✏ Modifier étudiant</h2>
+
+    {{ form_start(form) }}
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.nom) }}
+                {{ form_widget(form.nom, {'attr': {'class': 'form-control'}}) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.prenom) }}
+                {{ form_widget(form.prenom, {'attr': {'class': 'form-control'}}) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.classe) }}
+                {{ form_widget(form.classe, {'attr': {'class': 'form-control'}}) }}
+            </div>
+             <div class="col-md-6 mb-3">
+                {{ form_label(form.numTel) }}
+                {{ form_widget(form.numTel, {'attr': {'class': 'form-control'}}) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.dateN) }}
+                {{ form_widget(form.dateN, {'attr': {'class': 'form-control'}}) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.dateInscription) }}
+                {{ form_widget(form.dateInscription, {'attr': {'class': 'form-control'}}) }}
+            </div>
+           
+        </div>
+
+        <button class="btn btn-warning">Mettre à jour</button>
+        <a href="{{ path('etudiant_index') }}" class="btn btn-secondary">↩ Retour</a>
+    {{ form_end(form) }}
+
+    <hr>
+{% endblock %}

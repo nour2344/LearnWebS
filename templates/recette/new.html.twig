@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle Recette{% endblock %}
+
+{% block body %}
+    <h2 class="text-success mb-4">💰 Ajouter une nouvelle recette</h2>
+
+    {{ form_start(form) }}
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.source) }}
+                {{ form_widget(form.source, {'attr': {'class': 'form-select'}}) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.montantR) }}
+                {{ form_widget(form.montantR, {'attr': {'class': 'form-control'}}) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.dateR) }}
+                {{ form_widget(form.dateR, {'attr': {'class': 'form-control'}}) }}
+            </div>
+            <div class="col-12 mb-3">
+                {{ form_label(form.noteR) }}
+                {{ form_widget(form.noteR, {'attr': {'class': 'form-control', 'rows': 3}}) }}
+            </div>
+        </div>
+
+        <button class="btn btn-success">Enregistrer</button>
+        <a href="{{ path('recette_index') }}" class="btn btn-secondary">↩ Retour</a>
+    {{ form_end(form) }}
+{% endblock %}

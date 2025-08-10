@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier Personnel{% endblock %}
+
+{% block body %}
+    <h2 class="text-warning mb-4">✏ Modifier un membre du personnel</h2>
+
+    {{ form_start(form) }}
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.nomP) }}
+                {{ form_widget(form.nomP, {'attr': {'class': 'form-control'}}) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.prenomP) }}
+                {{ form_widget(form.prenomP, {'attr': {'class': 'form-control'}}) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.role) }}
+                {{ form_widget(form.role, {'attr': {'class': 'form-select'}}) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.salaire) }}
+                {{ form_widget(form.salaire, {'attr': {'class': 'form-control'}}) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form_label(form.dateRecrutement) }}
+                {{ form_widget(form.dateRecrutement, {'attr': {'class': 'form-control'}}) }}
+            </div>
+        </div>
+
+        <button class="btn btn-warning">Mettre à jour</button>
+        <a href="{{ path('personnel_index') }}" class="btn btn-secondary">↩ Retour</a>
+    {{ form_end(form) }}
+
+    <hr>
+{% endblock %}

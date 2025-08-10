@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier la note{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4>✏️ Modifier la note</h4>
+                </div>
+
+                <div class="card-body">
+                    {{ form_start(form) }}
+
+                        <div class="mb-3">
+                            {{ form_label(form.matiere) }}
+                            {{ form_widget(form.matiere, {'attr': {'class': 'form-control'}}) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(form.note) }}
+                            {{ form_widget(form.note, {'attr': {'class': 'form-control'}}) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(form.date) }}
+                            {{ form_widget(form.date, {'attr': {'class': 'form-control'}}) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(form.semestre) }}
+                            {{ form_widget(form.semestre, {'attr': {'class': 'form-control'}}) }}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success">✅ Enregistrer</button>
+                        </div>
+
+                    {{ form_end(form) }}
+
+                    <a href="{{ path('bulletin_by_etudiant', { id: form.vars.data.etudiant.id }) }}" class="btn btn-secondary mt-3 w-100">
+                        🔙 Retour à la liste
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

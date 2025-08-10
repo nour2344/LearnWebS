@@ -1,0 +1,21 @@
+{% for depense in depenses %}
+<tr>
+  <td>{{ depense.categorie.label() }}</td>
+  <td>{{ depense.montantD }} DT</td>
+  <td>{{ depense.dateD ? depense.dateD|date('d/m/Y') }}</td>
+  <td>{{ depense.description }}</td>
+  <td>
+    <div class="d-flex justify-content-center gap-2">
+      <a href="{{ path('depense_edit', {'id': depense.id}) }}" class="btn btn-sm btn-edit btn-icon">✏️ Modifier</a>
+      <form method="post" action="{{ path('depense_delete', {'id': depense.id}) }}" onsubmit="return confirm('Confirmer la suppression ?');">
+        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ depense.id) }}">
+        <button class="btn btn-sm btn-delete btn-icon">🗑 Supprimer</button>
+      </form>
+    </div>
+  </td>
+</tr>
+{% else %}
+<tr>
+  <td colspan="5" class="text-center">Aucune dépense enregistrée.</td>
+</tr>
+{% endfor %}

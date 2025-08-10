@@ -1,0 +1,60 @@
+{% for salaire in salaires %}
+    {% set paymentDate = salaire.dateP ?? null %}
+    <tr>
+        <td>{{ salaire.mois }}</td>
+        <td>{{ salaire.montant }} DT</td>
+
+        <td>
+            {% if paymentDate %}
+                {{ paymentDate|date('d/m/Y') }}
+                {% if not salaire.estPaye %}
+                    {% set days = ((paymentDate|date('U') - "now"|date('U')) / 86400) | round(0, 'ceil') %}
+                    {% if days < 0 %}
+                        <span class="badge bg-danger ms-2">En retard {{ days|abs }} j</span>
+                    {% elseif days <= 7 %}
+                        <span class="badge bg-warning text-dark ms-2">Dans {{ days }} j</span>
+                    {% endif %}
+                {% endif %}
+            {% else %}
+                <span class="text-muted">—</span>
+            {% endif %}
+        </td>
+
+        <td>
+            {% if salaire.personnel %}
+                {{ salaire.personnel.nomP }} {{ salaire.personnel.prenomP }}
+            {% else %}
+                <span class="text-muted">N/A</span>
+            {% endif %}
+        </td>
+
+        <td>
+            <form method="post" action="{{ path('salaire_toggle', {'id': salaire.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ salaire.id) }}">
+                <div class="form-check form-switch d-flex justify-content-center">
+                    <input class="form-check-input" type="checkbox"
+                           id="toggle_{{ salaire.id }}"
+                           onchange="this.form.submit()"
+                           {{ salaire.estPaye ? 'checked' : '' }}>
+                    <label class="form-check-label ms-2" for="toggle_{{ salaire.id }}">
+                        {{ salaire.estPaye ? 'Payé' : 'Non payé' }}
+                    </label>
+                </div>
+            </form>
+        </td>
+
+        <td>
+            <div class="d-flex justify-content-center gap-2">
+                <a href="{{ path('salaire_edit', {'id': salaire.id}) }}" class="btn btn-sm btn-edit btn-icon">✏️ Modifier</a>
+                <form method="post" action="{{ path('salaire_delete', {'id': salaire.id}) }}" onsubmit="return confirm('Confirmer la suppression ?');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ salaire.id) }}">
+                    <button class="btn btn-sm btn-delete btn-icon">🗑 Supprimer</button>
+                </form>
+            </div>
+        </td>
+    </tr>
+{% else %}
+    <tr>
+        <td colspan="6" class="text-center">Aucun salaire trouvé.</td>
+    </tr>
+{% endfor %}
