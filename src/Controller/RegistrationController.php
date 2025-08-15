@@ -26,9 +26,7 @@ class RegistrationController extends AbstractController
         UserPasswordHasherInterface $passwordHasher,
         EntityManagerInterface $em
     ): Response {
-        if ($this->getUser()) {
-            return $this->redirectToRoute('app_admin');
-        }
+      
 
         $user = new User();
         $form = $this->createForm(RegistrationFormType::class, $user)->handleRequest($request);

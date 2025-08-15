@@ -1,7 +1,6 @@
 security:
   password_hashers:
-    # Using the concrete class is a bit cleaner than the interface here
-    App\Entity\User: 'auto'
+    App\Entity\User: 'auto'   # better than the interface key
 
   providers:
     app_user_provider:
@@ -18,7 +17,6 @@ security:
       lazy: true
       provider: app_user_provider
 
-      # Built-in form_login (works with your SecurityController::login)
       form_login:
         login_path: app_login
         check_path: app_login
@@ -28,38 +26,25 @@ security:
         username_parameter: email
         password_parameter: password
 
-      # Logout (intercepts your /logout route)
       logout:
         path: app_logout
-        target: app_login
+        target: app_login            # <— redirect after logout
         invalidate_session: true
-        # If you render logout as a POST form with a CSRF token:
-        csrf_parameter: _csrf_token
+        csrf_parameter: _csrf_token   # <— matches Twig form below
         csrf_token_id: logout
 
       remember_me:
-        secret: '%kernel.secret%'   # <- prefer parameter over env() here
-        lifetime: 604800            # 7 days
+        secret: '%kernel.secret%'     # <— prefer kernel.secret
+        lifetime: 604800              # 7 days
         path: /
 
-      # Optional but recommended:
-      #login_throttling:
-       # max_attempts: 5
-        #interval: '15 minutes'
-
-      # If you add the UserChecker to block non-verified users, uncomment:
-      # user_checker: App\Security\UserChecker
-
+  # first match wins — put public routes first
   access_control:
-    # Public pages
+    - { path: ^/logout$, roles: PUBLIC_ACCESS }
     - { path: ^/login$, roles: PUBLIC_ACCESS }
     - { path: ^/register$, roles: PUBLIC_ACCESS }
-
-    # Email verification route (your controller requires full auth)
     - { path: ^/verify/email$, roles: IS_AUTHENTICATED_FULLY }
 
-    # Protect your admin area (adjust the path to your real admin prefix)
-    - { path: ^/admin, roles: ROLE_USER }
-
-    # (Optional) allow the logout path without auth
-    - { path: ^/logout$, roles: PUBLIC_ACCESS }
+    # protect your dashboard/root + feature areas (adjust paths as needed)
+    - { path: ^/$, roles: ROLE_USER }
+    - { path: ^/(admin|etudiant|paiement|personnel|salaire), roles: ROLE_USER }
