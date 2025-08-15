@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\EtudiantRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: EtudiantRepository::class)]
 class Etudiant
@@ -15,45 +16,45 @@ class Etudiant
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Le nom est obligatoire.')]
+    #[Assert\Length(min: 2, max: 100,
+        minMessage: 'Le nom doit contenir au moins {{ limit }} caractères.',
+        maxMessage: 'Le nom ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $nom = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Le prénom est obligatoire.')]
+    #[Assert\Length(min: 2, max: 100,
+        minMessage: 'Le prénom doit contenir au moins {{ limit }} caractères.',
+        maxMessage: 'Le prénom ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $prenom = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'La classe est obligatoire.')]
+    #[Assert\Length(min: 1, max: 50)]
     private ?string $classe = null;
 
-    #[ORM\Column(name: 'dateN', type: 'date')]
-private ?\DateTimeInterface $dateN = null;
+    #[ORM\Column(name: 'dateN', type: Types::DATE_MUTABLE)]
+    #[Assert\NotBlank(message: 'La date de naissance est obligatoire.')]
+    #[Assert\LessThan('today', message: 'La date de naissance doit être antérieure à aujourd\'hui.')]
+    private ?\DateTimeInterface $dateN = null;
 
+    #[ORM\Column(name: 'dateInscription', type: Types::DATE_MUTABLE)]
+    #[Assert\NotBlank(message: 'La date d\'inscription est obligatoire.')]
+    #[Assert\LessThanOrEqual('today', message: 'La date d\'inscription ne peut pas être dans le futur.')]
+    private ?\DateTimeInterface $dateInscription = null;
 
+    #[ORM\Column(type: 'string', length: 15)]
+    #[Assert\NotBlank(message: 'Le numéro de téléphone est obligatoire.')]
+    #[Assert\Regex(pattern: '/^\d{8,15}$/', message: 'Le numéro doit contenir entre 8 et 15 chiffres.')]
+    private ?string $numTel = null;
 
-    #[ORM\Column(name: 'dateInscription', type: 'date')]
-private ?\DateTimeInterface $dateInscription = null;
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $dernierPaiement = null;
 
-
-#[ORM\Column(type: 'string', length: 15)]
-private ?string $numTel = null;
-
-
-  
-
-
-#[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-private ?\DateTimeInterface $dernierPaiement = null;
-
-public function getDernierPaiement(): ?\DateTimeInterface
-{
-    return $this->dernierPaiement;
-}
-
-public function setDernierPaiement(?\DateTimeInterface $dernierPaiement): static
-{
-    $this->dernierPaiement = $dernierPaiement;
-    return $this;
-}
-
-
+    // ---- Getters / Setters ----
 
     public function getId(): ?int
     {
@@ -65,10 +66,9 @@ public function setDernierPaiement(?\DateTimeInterface $dernierPaiement): static
         return $this->nom;
     }
 
-    public function setNom(string $nom): static
+    public function setNom(string $nom): self
     {
         $this->nom = $nom;
-
         return $this;
     }
 
@@ -77,10 +77,9 @@ public function setDernierPaiement(?\DateTimeInterface $dernierPaiement): static
         return $this->prenom;
     }
 
-    public function setPrenom(string $prenom): static
+    public function setPrenom(string $prenom): self
     {
         $this->prenom = $prenom;
-
         return $this;
     }
 
@@ -89,50 +88,55 @@ public function setDernierPaiement(?\DateTimeInterface $dernierPaiement): static
         return $this->classe;
     }
 
-    public function setClasse(string $classe): static
+    public function setClasse(string $classe): self
     {
         $this->classe = $classe;
-
         return $this;
     }
 
-    public function getDateN(): ?\DateTime
+    public function getDateN(): ?\DateTimeInterface
     {
         return $this->dateN;
     }
 
-    public function setDateN(\DateTime $dateN): static
+    // Required field -> don’t accept null here
+    public function setDateN(\DateTimeInterface $dateN): self
     {
         $this->dateN = $dateN;
-
         return $this;
     }
 
-    public function getDateInscription(): ?\DateTime
-{
-    return $this->dateInscription;
-}
+    public function getDateInscription(): ?\DateTimeInterface
+    {
+        return $this->dateInscription;
+    }
 
-public function setDateInscription(?\DateTime $dateInscription): static
-{
-    $this->dateInscription = $dateInscription;
+    // Required field -> don’t accept null here
+    public function setDateInscription(\DateTimeInterface $dateInscription): self
+    {
+        $this->dateInscription = $dateInscription;
+        return $this;
+    }
 
-    return $this;
-}
+    public function getNumTel(): ?string
+    {
+        return $this->numTel;
+    }
 
-public function getNumTel(): ?string
-{
-    return $this->numTel;
-}
+    public function setNumTel(string $numTel): self
+    {
+        $this->numTel = $numTel;
+        return $this;
+    }
 
-public function setNumTel(?string $numTel): self
-{
-    $this->numTel = $numTel;
-    return $this;
-}
+    public function getDernierPaiement(): ?\DateTimeInterface
+    {
+        return $this->dernierPaiement;
+    }
 
-
-
-  
-
+    public function setDernierPaiement(?\DateTimeInterface $dernierPaiement): self
+    {
+        $this->dernierPaiement = $dernierPaiement;
+        return $this;
+    }
 }

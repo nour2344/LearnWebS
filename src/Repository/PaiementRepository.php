@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Repository;
-
+use Doctrine\DBAL\Types\Types;
 use App\Entity\Paiement;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -49,4 +49,48 @@ class PaiementRepository extends ServiceEntityRepository
 
         return $qb->getQuery();
     }
+    public function countDistinctStudents(): int
+{
+    return (int) $this->createQueryBuilder('p')
+        ->select('COUNT(DISTINCT p.etudiant)')
+        ->getQuery()
+        ->getSingleScalarResult();
 }
+
+public function getTotalPayments(): float
+{
+    return (float) $this->createQueryBuilder('p')
+        ->select('COALESCE(SUM(p.montantP), 0)')
+        ->getQuery()
+        ->getSingleScalarResult();
+}
+
+  public function sumAll(): float
+{
+    return (float) $this->createQueryBuilder('p')
+        ->select('COALESCE(SUM(p.montantP), 0)')   // ← change to your real amount field
+        ->getQuery()
+        ->getSingleScalarResult();
+}
+
+public function sumBetween(\DateTimeInterface $start, \DateTimeInterface $end): float
+{
+    return (float) $this->createQueryBuilder('p')
+        ->select('COALESCE(SUM(p.montantP), 0)')   // ← amount field
+        ->andWhere('p.dateP >= :start')            // ← date field
+        ->andWhere('p.dateP < :end')
+        ->setParameter('start', $start, Types::DATETIME_MUTABLE)
+        ->setParameter('end', $end, Types::DATETIME_MUTABLE)
+        ->getQuery()
+        ->getSingleScalarResult();
+}
+
+public function countDistinctStudentsPaid(): int
+{
+    return (int) $this->createQueryBuilder('p')
+        ->select('COUNT(DISTINCT p.etudiant)')            // ← relation name to Etudiant
+        ->getQuery()
+        ->getSingleScalarResult();
+}
+}
+

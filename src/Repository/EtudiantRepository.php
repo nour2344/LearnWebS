@@ -61,6 +61,14 @@ public function searchByCriteria(?string $nom, ?string $prenom, ?string $classe)
 
     return $qb->getQuery()->getResult();
 }
+//D
+ public function countAll(): int
+    {
+        return (int) $this->createQueryBuilder('e')
+            ->select('COUNT(e.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 
 
 }

@@ -3,33 +3,141 @@
 {% block title %}Nouveau Personnel{% endblock %}
 
 {% block body %}
-    <h2 class="text-success mb-4">👨‍🏫 Ajouter un membre du personnel</h2>
+  <h2 class="text-success mb-4">👨‍🏫 Ajouter un membre du personnel</h2>
 
-    {{ form_start(form) }}
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.nomP) }}
-                {{ form_widget(form.nomP, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.prenomP) }}
-                {{ form_widget(form.prenomP, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.role) }}
-                {{ form_widget(form.role, {'attr': {'class': 'form-select'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.salaire) }}
-                {{ form_widget(form.salaire, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.dateRecrutement) }}
-                {{ form_widget(form.dateRecrutement, {'attr': {'class': 'form-control'}}) }}
-            </div>
-        </div>
+  {{ form_start(form, { attr: { id: 'personnel-form', novalidate: 'novalidate' } }) }}
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.nomP) }}
+        {{ form_widget(form.nomP, { attr: { class: 'form-control', required: true, minlength: 2, maxlength: 255 } }) }}
+        <div class="invalid-feedback"></div>
+      </div>
 
-        <button class="btn btn-success">Enregistrer</button>
-        <a href="{{ path('personnel_index') }}" class="btn btn-secondary">↩ Retour</a>
-    {{ form_end(form) }}
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.prenomP) }}
+        {{ form_widget(form.prenomP, { attr: { class: 'form-control', required: true, minlength: 2, maxlength: 255 } }) }}
+        <div class="invalid-feedback"></div>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.role) }}
+        {{ form_widget(form.role, { attr: { class: 'form-select', required: true } }) }}
+        <div class="invalid-feedback"></div>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.salaire) }}
+        {{ form_widget(form.salaire, { attr: { class: 'form-control', required: true, step: '0.01', min: '0.01', inputmode: 'decimal' } }) }}
+        <div class="invalid-feedback"></div>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.dateRecrutement) }}
+        {{ form_widget(form.dateRecrutement, { attr: { class: 'form-control', max: ("now"|date('Y-m-d')) } }) }}
+        <div class="invalid-feedback"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-success">Enregistrer</button>
+    <a href="{{ path('personnel_index') }}" class="btn btn-secondary">↩ Retour</a>
+  {{ form_end(form) }}
+
+  <script>
+    (function () {
+      const form = document.getElementById('personnel-form');
+      if (!form) return;
+
+      const $ = (name) => form.querySelector(`[name$="[${name}]"]`);
+      const fields = {
+        nomP: $('nomP'),
+        prenomP: $('prenomP'),
+        role: $('role'),
+        salaire: $('salaire'),
+        dateRecrutement: $('dateRecrutement'),
+      };
+
+      const getFb = (el) => el?.closest('.mb-3')?.querySelector('.invalid-feedback');
+
+      function markInvalid(input, message) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        const fb = getFb(input);
+        if (fb) fb.textContent = message || '';
+      }
+
+      function markValid(input) {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+        const fb = getFb(input);
+        if (fb) fb.textContent = '';
+      }
+
+      function todayISO() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      }
+
+      function validateField(input) {
+        if (!input) return true;
+        const name = input.name;
+        const v = input.value.trim();
+
+        // nomP
+        if (name.endsWith('[nomP]')) {
+          if (!v) { markInvalid(input, 'Le nom est obligatoire.'); return false; }
+          if (v.length < 2) { markInvalid(input, 'Le nom doit contenir au moins 2 caractères.'); return false; }
+          markValid(input); return true;
+        }
+
+        // prenomP
+        if (name.endsWith('[prenomP]')) {
+          if (!v) { markInvalid(input, 'Le prénom est obligatoire.'); return false; }
+          if (v.length < 2) { markInvalid(input, 'Le prénom doit contenir au moins 2 caractères.'); return false; }
+          markValid(input); return true;
+        }
+
+        // role (required)
+        if (name.endsWith('[role]')) {
+          if (!v) { markInvalid(input, 'Le rôle est obligatoire.'); return false; }
+          markValid(input); return true;
+        }
+
+        // salaire (> 0)
+        if (name.endsWith('[salaire]')) {
+          if (!v) { markInvalid(input, 'Le salaire est obligatoire.'); return false; }
+          const n = parseFloat(v.replace(',', '.'));
+          if (isNaN(n) || n <= 0) { markInvalid(input, 'Le salaire doit être supérieur à zéro.'); return false; }
+          markValid(input); return true;
+        }
+
+        // dateRecrutement (optional, <= today)
+        if (name.endsWith('[dateRecrutement]')) {
+          if (!v) { input.classList.remove('is-invalid','is-valid'); return true; }
+          const max = todayISO();
+          if (v > max) { markInvalid(input, 'La date de recrutement ne peut pas être dans le futur.'); return false; }
+          markValid(input); return true;
+        }
+
+        return true;
+      }
+
+      // Blur + input (don’t shout on page load)
+      Object.values(fields).forEach((el) => {
+        if (!el) return;
+        el.addEventListener('blur', () => validateField(el));
+        el.addEventListener('input', () => el.classList.remove('is-invalid'));
+      });
+
+      // Submit
+      form.addEventListener('submit', (e) => {
+        let ok = true;
+        Object.values(fields).forEach((el) => { ok = validateField(el) && ok; });
+        if (!ok) {
+          e.preventDefault();
+          e.stopPropagation();
+          form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    })();
+  </script>
 {% endblock %}

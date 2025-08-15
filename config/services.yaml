@@ -1,4 +1,3 @@
-# config/services.yaml
 parameters: {}
 
 services:
@@ -6,16 +5,35 @@ services:
     autowire: true
     autoconfigure: true
 
-  # make classes in src/ available as services
+  # Make classes in src/ available as services
   App\:
     resource: '../src/'
     exclude:
       - '../src/DependencyInjection/'
       - '../src/Entity/'
       - '../src/Kernel.php'
-      # - '../src/Tests/'   # optional
+      # - '../src/Tests/'
 
-  # register the Twig extension
+  # --- EMAIL TEMPLATE RENDERING (TemplatedEmail) ---
+  mailer.twig_body_renderer:
+    class: Symfony\Bridge\Twig\Mime\BodyRenderer
+    arguments: ['@twig']
+
+  Symfony\Component\Mime\BodyRendererInterface: '@mailer.twig_body_renderer'
+
+  # Event subscriber that renders TemplatedEmail before sending
+  twig.mailer.message_listener:
+    class: Symfony\Component\Mailer\EventListener\MessageListener
+    arguments:
+      - ~
+      - '@Symfony\Component\Mime\BodyRendererInterface'
+    tags:
+      - { name: kernel.event_subscriber }
+
+  # (Optional) Block login until email is verified
+  App\Security\UserChecker: ~
+
+  # Your Twig extension
   App\Twig\LatePaymentsExtension:
     arguments:
       $repo: '@App\Repository\SalaireRepository'

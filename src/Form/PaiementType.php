@@ -29,17 +29,19 @@ class PaiementType extends AbstractType
                     new Assert\NotNull(['message' => 'Le type de paiement est obligatoire.']),
                 ],
             ])
-            ->add('montantP', MoneyType::class, [
-                'label' => 'Montant',
-                'currency' => 'EUR',
+           ->add('montantP', MoneyType::class, [
+  'label' => 'Montant',
+  'currency' => 'DINAR',
+  'attr' => ['step' => '0.01', 'min' => '0.01', 'inputmode' => 'decimal'],
                 'constraints' => [
                     new Assert\NotBlank(['message' => 'Le montant est obligatoire.']),
                     new Assert\Positive(['message' => 'Le montant doit être supérieur à zéro.']),
                 ],
             ])
             ->add('dateP', DateType::class, [
-                'label' => 'Date de paiement',
-                'widget' => 'single_text',
+  'widget' => 'single_text',
+  'html5' => true,
+  'attr' => ['max' => (new \DateTime())->format('Y-m-d')],
                 'constraints' => [
                     new Assert\NotBlank(['message' => 'La date est obligatoire.']),
                     new Assert\LessThanOrEqual([

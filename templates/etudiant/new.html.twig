@@ -3,38 +3,197 @@
 {% block title %}Nouvel étudiant{% endblock %}
 
 {% block body %}
-    <h2 class="text-success mb-4">➕ Ajouter un étudiant</h2>
+<h2 class="text-success mb-4">➕ Ajouter un étudiant</h2>
 
-    {{ form_start(form) }}
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.nom) }}
-                {{ form_widget(form.nom, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.prenom) }}
-                {{ form_widget(form.prenom, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.classe) }}
-                {{ form_widget(form.classe, {'attr': {'class': 'form-control'}}) }}
-            </div>
-             <div class="col-md-6 mb-3">
-                {{ form_label(form.numTel) }}
-                {{ form_widget(form.numTel, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.dateN) }}
-                {{ form_widget(form.dateN, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.dateInscription) }}
-                {{ form_widget(form.dateInscription, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            
-        </div>
+{# Add id + novalidate so we can control validation with JS #}
+{{ form_start(form, {'attr': {'id': 'etudiant-form', 'novalidate': 'novalidate'}}) }}
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.nom) }}
+      {{ form_widget(form.nom, {
+        attr: {
+          class: 'form-control',
+          required: true,
+          minlength: 2,
+          maxlength: 100
+        }
+      }) }}
+      <div class="invalid-feedback"></div>
+    </div>
 
-        <button class="btn btn-success">Enregistrer</button>
-        <a href="{{ path('etudiant_index') }}" class="btn btn-secondary">↩ Retour</a>
-    {{ form_end(form) }}
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.prenom) }}
+      {{ form_widget(form.prenom, {
+        attr: {
+          class: 'form-control',
+          required: true,
+          minlength: 2,
+          maxlength: 100
+        }
+      }) }}
+      <div class="invalid-feedback"></div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.classe) }}
+      {{ form_widget(form.classe, {
+        attr: {
+          class: 'form-control',
+          required: true,
+          minlength: 1,
+          maxlength: 50
+        }
+      }) }}
+      <div class="invalid-feedback"></div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.numTel) }}
+      {{ form_widget(form.numTel, {
+        attr: {
+          class: 'form-control',
+          required: true,
+          pattern: '^\d{8,15}$',
+          inputmode: 'numeric',
+          placeholder: 'Ex: 22334455'
+        }
+      }) }}
+      <div class="invalid-feedback"></div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.dateN) }}
+      {{ form_widget(form.dateN, {
+        attr: {
+          class: 'form-control',
+          required: true,
+          max: ('now'|date('Y-m-d'))
+        }
+      }) }}
+      <div class="invalid-feedback"></div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.dateInscription) }}
+      {{ form_widget(form.dateInscription, {
+        attr: {
+          class: 'form-control',
+          required: true,
+          max: ('now'|date('Y-m-d'))
+        }
+      }) }}
+      <div class="invalid-feedback"></div>
+    </div>
+  </div>
+
+  <button class="btn btn-success">Enregistrer</button>
+  <a href="{{ path('etudiant_index') }}" class="btn btn-secondary">↩ Retour</a>
+{{ form_end(form) }}
+
+{# ---- Client-side validation (JS) ---- #}
+<script>
+(function () {
+  const form = document.getElementById('etudiant-form');
+  if (!form) return;
+
+  // Inputs (Symfony usually generates these IDs)
+  const el = {
+    nom:             document.getElementById('etudiant_nom'),
+    prenom:          document.getElementById('etudiant_prenom'),
+    classe:          document.getElementById('etudiant_classe'),
+    numTel:          document.getElementById('etudiant_numTel'),
+    dateN:           document.getElementById('etudiant_dateN'),
+    dateInscription: document.getElementById('etudiant_dateInscription'),
+  };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const inputs = Object.values(el).filter(Boolean);
+
+  function fb(input) {
+    let n = input.nextElementSibling;
+    if (!(n && n.classList.contains('invalid-feedback'))) {
+      n = document.createElement('div');
+      n.className = 'invalid-feedback';
+      input.insertAdjacentElement('afterend', n);
+    }
+    return n;
+  }
+  function setError(input, msg) {
+    input.classList.add('is-invalid');
+    fb(input).textContent = msg || '';
+  }
+  function clearError(input) {
+    input.classList.remove('is-invalid');
+    fb(input).textContent = '';
+  }
+  function isFuture(d) { return d && d > today; }
+
+  // Validators per field
+  const validators = new Map([
+    [el.nom, (v) => {
+      if (!v) return 'Le nom est obligatoire.';
+      if (v.length < 2) return 'Au moins 2 caractères.';
+      return '';
+    }],
+    [el.prenom, (v) => {
+      if (!v) return 'Le prénom est obligatoire.';
+      if (v.length < 2) return 'Au moins 2 caractères.';
+      return '';
+    }],
+    [el.classe, (v) => {
+      if (!v) return 'La classe est obligatoire.';
+      return '';
+    }],
+    [el.numTel, (v) => {
+      if (!v) return 'Le numéro de téléphone est obligatoire.';
+      if (!/^\d{8,15}$/.test(v)) return 'Le numéro doit contenir entre 8 et 15 chiffres.';
+      return '';
+    }],
+    [el.dateN, (v) => {
+      if (!v) return 'La date de naissance est obligatoire.';
+      if (isFuture(v)) return 'La date de naissance doit être antérieure à aujourd\'hui.';
+      return '';
+    }],
+    [el.dateInscription, (v) => {
+      if (!v) return 'La date d\'inscription est obligatoire.';
+      if (isFuture(v)) return 'La date d\'inscription ne peut pas être dans le futur.';
+      return '';
+    }],
+  ]);
+
+  function validateField(input) {
+    const rule = validators.get(input);
+    if (!rule) return true;
+    const msg = rule((input.value || '').trim());
+    if (msg) { setError(input, msg); return false; }
+    clearError(input); return true;
+  }
+
+  function markTouched(input) { input.dataset.touched = '1'; }
+
+  // Only validate fields after they have been touched
+  for (const input of inputs) {
+    input.addEventListener('blur', () => { markTouched(input); validateField(input); });
+    input.addEventListener('change', () => { if (input.dataset.touched === '1') validateField(input); });
+    input.addEventListener('input', ()  => { if (input.dataset.touched === '1') validateField(input); });
+  }
+
+  // On submit: mark all as touched, validate all
+  form.addEventListener('submit', (e) => {
+    inputs.forEach(i => i.dataset.touched = '1');
+
+    let ok = true;
+    for (const input of inputs) {
+      if (!validateField(input)) ok = false;
+    }
+    if (!ok) {
+      e.preventDefault();
+      e.stopPropagation();
+      const first = form.querySelector('.is-invalid');
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+})();
+</script>
+
 {% endblock %}

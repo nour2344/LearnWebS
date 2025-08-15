@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Salaire;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\DBAL\Types\Types;
 
 class SalaireRepository extends ServiceEntityRepository
 {
@@ -77,6 +78,36 @@ public function findLatePayments(): array
         ->where('s.statut = :statut')
         ->setParameter('statut', 'Non payé');
     return $qb->getQuery()->getResult();
+}
+
+//D
+public function sumAll(): float
+    {
+        return (float) $this->createQueryBuilder('s')
+            ->select('COALESCE(SUM(s.montant), 0)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /** Distinct personnel who received at least one salary payment */
+    public function countDistinctPersonnelPaid(): int
+    {
+        return (int) $this->createQueryBuilder('s')
+            ->select('COUNT(DISTINCT s.personnel)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function sumBetween(\DateTimeInterface $start, \DateTimeInterface $end): float
+{
+    return (float) $this->createQueryBuilder('s')
+        ->select('COALESCE(SUM(s.montant), 0)')
+        ->andWhere('s.dateP >= :start')
+        ->andWhere('s.dateP < :end')
+        ->setParameter('start', $start, Types::DATETIME_MUTABLE) // or DATETIME_IMMUTABLE if applicable
+        ->setParameter('end', $end, Types::DATETIME_MUTABLE)
+        ->getQuery()
+        ->getSingleScalarResult();
 }
 
 }

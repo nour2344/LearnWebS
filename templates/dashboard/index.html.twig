@@ -3,60 +3,227 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block body %}
-<div class="container mt-5">
-    <h2 class="text-center mb-4">📊 Tableau de bord financier</h2>
+<style>
+  :root{
+    --muted:#6b7280; --ok:#059669; --bad:#dc2626;
+    --shadow:0 14px 34px rgba(17,24,39,.10);
+  }
+  .wrap{ max-width:1200px; }
 
-    <div class="row">
-        <!-- Revenus -->
-        <div class="col-md-4 mb-3">
-            <div class="card border-success">
-                <div class="card-header bg-success text-white">
-                    💰 Revenus (Madakhil)
-                </div>
-                <div class="card-body">
-                    <ul class="list-unstyled mb-0">
-                        <li>📅 Jour : <strong>{{ dailyIncome }} DT</strong></li>
-                        <li>📅 Mois : <strong>{{ monthlyIncome }} DT</strong></li>
-                        <li>📅 Année : <strong>{{ yearlyIncome }} DT</strong></li>
-                        <li>📊 <strong>Total : {{ totalIncome }} DT</strong></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+  /* Header */
+  .dash-title{ display:flex; align-items:center; gap:1rem; margin-bottom:.75rem; }
+  .dash-chip{ width:52px; height:52px; border-radius:14px; display:grid; place-items:center;
+              background:linear-gradient(135deg,#e0e7ff 0%,#f5f3ff 100%); box-shadow:var(--shadow); font-size:1.4rem; }
+  .dash-sub{ color:var(--muted); margin-top:-.2rem; font-size:.95rem; }
 
-        <!-- Dépenses -->
-        <div class="col-md-4 mb-3">
-            <div class="card border-danger">
-                <div class="card-header bg-danger text-white">
-                    💸 Dépenses (Masarif)
-                </div>
-                <div class="card-body">
-                    <ul class="list-unstyled mb-0">
-                        <li>📅 Jour : <strong>{{ dailyExpense }} DT</strong></li>
-                        <li>📅 Mois : <strong>{{ monthlyExpense }} DT</strong></li>
-                        <li>📅 Année : <strong>{{ yearlyExpense }} DT</strong></li>
-                        <li>📊 <strong>Total : {{ totalExpense }} DT</strong></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+  /* Bigger, aligned KPI cards */
+  .kpi-card{ border:0; border-radius:20px; box-shadow:var(--shadow); min-height:190px; }
+  .kpi-card .card-body{ padding:1.35rem 1.6rem 1.2rem; }
+  .kpi-body{ display:flex; flex-direction:column; height:100%; }
+  .kpi-head{ display:flex; align-items:center; gap:.7rem; color:var(--muted); font-weight:700; font-size:.95rem; }
+  .kpi-ico{ width:36px; height:36px; border-radius:12px; display:grid; place-items:center; font-size:1.1rem;
+            background:linear-gradient(135deg,#e0e7ff 0%,#f5f3ff 100%); }
+  .kpi-value{ font-size:2.4rem; font-weight:800; line-height:1; margin:.35rem 0 .15rem; letter-spacing:.2px; }
+  .kpi-footer{ margin-top:auto; font-size:.95rem; color:var(--muted); min-height:2.6em; }
+  .kpi-ok{ color:var(--ok); }
+  .kpi-bad{ color:var(--bad); }
+  .kpi-bar{ height:10px; background:#eef2f7; border-radius:999px; overflow:hidden; }
+  .kpi-bar > span{ display:block; height:100%; background:#10b981; }
 
-        <!-- Solde net -->
-        <div class="col-md-4 mb-3">
-            <div class="card border-primary">
-                <div class="card-header bg-primary text-white">
-                    📈 Solde Net (Da5l Safi)
-                </div>
-                <div class="card-body">
-                    <ul class="list-unstyled mb-0">
-                        <li>📅 Jour : <strong>{{ netDaily }} DT</strong></li>
-                        <li>📅 Mois : <strong>{{ netMonthly }} DT</strong></li>
-                        <li>📅 Année : <strong>{{ netYearly }} DT</strong></li>
-                        <li>📊 <strong>Total : {{ netTotal }} DT</strong></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+  /* Cards / table */
+  .card-std{ border:0; border-radius:18px; box-shadow:var(--shadow); }
+  .muted{ color:var(--muted); }
+  .table-sm th, .table-sm td{ padding:.6rem .8rem; }
+  .table-zebra tbody tr:nth-child(odd){ background:#fafafa; }
+</style>
+
+<div class="container wrap my-4">
+  <!-- Header -->
+  <div class="dash-title">
+    <div class="dash-chip">📊</div>
+    <div>
+      <h1 class="mb-0">Dashboard</h1>
+      <div class="dash-sub">Overview of students & finances</div>
     </div>
+  </div>
+
+  <!-- KPI Grid (bigger + aligned). 3 cards per row on lg+ so they’re wider -->
+  <div class="row g-4 row-cols-1 row-cols-sm-2 row-cols-lg-3 align-items-stretch">
+    <!-- Students -->
+    <div class="col">
+      <div class="card kpi-card h-100">
+        <div class="card-body kpi-body">
+          <div class="kpi-head"><span class="kpi-ico">👨‍🎓</span><span>Total Students</span></div>
+          <div class="kpi-value">{{ students.total }}</div>
+          <div class="kpi-footer">
+            <div class="kpi-ok">Paid {{ students.paid }} ({{ students.percentPaid }}%)</div>
+            <div class="kpi-bar mt-2"><span style="width: {{ students.percentPaid }}%"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payments -->
+    <div class="col">
+      <div class="card kpi-card h-100">
+        <div class="card-body kpi-body">
+          <div class="kpi-head"><span class="kpi-ico">💳</span><span>Payments (Total)</span></div>
+          <div class="kpi-value">{{ payments.total|number_format(2, '.', ' ') }}</div>
+          <div class="kpi-footer">This month: {{ payments.month|number_format(2, '.', ' ') }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Salaries -->
+    <div class="col">
+      <div class="card kpi-card h-100">
+        <div class="card-body kpi-body">
+          <div class="kpi-head"><span class="kpi-ico">👩‍🏫</span><span>Salaries (Total)</span></div>
+          <div class="kpi-value">{{ salaries.total|number_format(2, '.', ' ') }}</div>
+          <div class="kpi-footer">This month: {{ salaries.month|number_format(2, '.', ' ') }} • Staff: {{ salaries.personnelPaid }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expenses -->
+    <div class="col">
+      <div class="card kpi-card h-100">
+        <div class="card-body kpi-body">
+          <div class="kpi-head"><span class="kpi-ico">🧾</span><span>Expenses (Total)</span></div>
+          <div class="kpi-value">{{ expenses.total|number_format(2, '.', ' ') }}</div>
+          <div class="kpi-footer">This month: {{ expenses.month|number_format(2, '.', ' ') }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Revenue -->
+    <div class="col">
+      <div class="card kpi-card h-100">
+        <div class="card-body kpi-body">
+          <div class="kpi-head"><span class="kpi-ico">💵</span><span>Revenue (Total)</span></div>
+          <div class="kpi-value">{{ revenue.total|number_format(2, '.', ' ') }}</div>
+          <div class="kpi-footer">This month: {{ revenue.month|number_format(2, '.', ' ') }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Net -->
+    <div class="col">
+      <div class="card kpi-card h-100">
+        <div class="card-body kpi-body">
+          <div class="kpi-head"><span class="kpi-ico">⚖️</span><span>Net Balance</span></div>
+          <div class="kpi-value {{ net.total >= 0 ? 'kpi-ok' : 'kpi-bad' }}">{{ net.total|number_format(2, '.', ' ') }}</div>
+          <div class="kpi-footer {{ net.month >= 0 ? 'kpi-ok' : 'kpi-bad' }}">This month: {{ net.month|number_format(2, '.', ' ') }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top expense categories -->
+  <div class="row g-3 mt-2">
+    <div class="col-md-6">
+      <div class="card card-std">
+        <div class="card-body">
+          <div class="fw-semibold mb-2">Top Expense Categories</div>
+          <table class="table table-sm table-zebra align-middle mb-0">
+            <thead class="table-light">
+              <tr><th>Category</th><th class="text-end">Total</th></tr>
+            </thead>
+            <tbody>
+              {% for row in expenses.topCats %}
+                <tr>
+                  <td>{{ row.categorie.value ?? row.categorie.name ?? row.categorie }}</td>
+                  <td class="text-end">{{ row.total|number_format(2, '.', ' ') }}</td>
+                </tr>
+              {% else %}
+                <tr><td colspan="2" class="text-center muted">No data</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <div class="small muted mt-2">
+            Period month: {{ period.startMonth|date('Y-m-d') }} → {{ period.endMonth|date('Y-m-d') }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row g-3 mt-3">
+    <div class="col-lg-8">
+      <div class="card card-std">
+        <div class="card-body">
+          <div class="fw-semibold mb-2">Cashflow (last 6 months)</div>
+          <canvas id="cashflowChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card card-std">
+        <div class="card-body">
+          <div class="fw-semibold mb-2">Top Expense Categories</div>
+          <canvas id="topCatsChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+{# Chart.js #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Data from controller
+  const labels   = {{ chart.labels|json_encode|raw }};
+  const revenue  = {{ chart.revenue|json_encode|raw }};
+  const expenses = {{ chart.expenses|json_encode|raw }};
+  const net      = {{ chart.net|json_encode|raw }};
+
+  const money = v => Number(v).toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+
+  // Line chart
+  const ctx1 = document.getElementById('cashflowChart').getContext('2d');
+  new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Revenue',  data: revenue,  tension:.35, fill:false, pointRadius:2 },
+        { label: 'Expenses', data: expenses, tension:.35, fill:false, pointRadius:2 },
+        { label: 'Net',      data: net,      tension:.35, fill:false, pointRadius:2 }
+      ]
+    },
+    options: {
+      responsive:true,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ display:true },
+        tooltip:{ callbacks:{ label:(ctx)=>`${ctx.dataset.label}: ${money(ctx.parsed.y)}` } }
+      },
+      scales:{
+        x:{ grid:{ display:false } },
+        y:{ beginAtZero:true, grid:{ color:'rgba(0,0,0,.06)' } }
+      }
+    }
+  });
+
+  // Doughnut: Top expense categories
+  const topCats   = {{ chart.topCats|json_encode|raw }};
+  const catLabels = topCats.map(r => (r.categorie && (r.categorie.value ?? r.categorie.name)) ?? r.categorie);
+  const catTotals = topCats.map(r => Number(r.total));
+
+  const ctx2 = document.getElementById('topCatsChart').getContext('2d');
+  new Chart(ctx2, {
+    type:'doughnut',
+    data:{ labels:catLabels, datasets:[{ data:catTotals }] },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{ position:'bottom' },
+        tooltip:{ callbacks:{ label:(ctx)=>`${ctx.label}: ${money(ctx.parsed)}` } }
+      },
+      cutout:'60%'
+    }
+  });
+</script>
 {% endblock %}

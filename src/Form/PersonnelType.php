@@ -53,15 +53,18 @@ class PersonnelType extends AbstractType
             ])
             ->add('salaire', MoneyType::class, [
                 'label' => 'Salaire',
-                'currency' => 'EUR',
+                'currency' => 'DINAR',
+                  'attr' => ['step' => '0.01', 'min' => '0.01', 'inputmode' => 'decimal'],
+
                 'constraints' => [
                     new Assert\NotBlank(['message' => 'Le salaire est obligatoire.']),
                     new Assert\Positive(['message' => 'Le salaire doit être supérieur à zéro.']),
                 ],
             ])
             ->add('dateRecrutement', DateType::class, [
-                'label' => 'Date de recrutement',
-                'widget' => 'single_text',
+  'widget' => 'single_text',
+  'html5' => true,
+  'attr' => ['max' => (new \DateTime())->format('Y-m-d')],
                 'required' => false,
                 'constraints' => [
                     new Assert\LessThanOrEqual([

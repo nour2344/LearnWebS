@@ -1,43 +1,163 @@
 {% extends 'base.html.twig' %}
-
 {% block title %}Ajouter une note{% endblock %}
 
 {% block body %}
 <div class="container mt-5">
-    <div class="card shadow p-4">
-        <h2 class="mb-4 text-primary">
-            <i class="fas fa-plus-circle"></i> Ajouter une note pour {{ etudiant.nom }} {{ etudiant.prenom }}
-        </h2>
+  <div class="card shadow p-4">
+    <h2 class="mb-4 text-primary">
+      <i class="fas fa-plus-circle"></i> Ajouter une note pour {{ etudiant.nom }} {{ etudiant.prenom }}
+    </h2>
 
-        {{ form_start(form) }}
-            <div class="mb-3">
-                {{ form_label(form.matiere, "📘 Matière") }}
-                {{ form_widget(form.matiere, { 'attr': {'placeholder': 'Ex : Mathématiques', 'class': 'form-control'} }) }}
-            </div>
+    {# add id + novalidate #}
+    {{ form_start(form, { attr: { id: 'bulletin-form', novalidate: 'novalidate' } }) }}
 
-            <div class="mb-3">
-                {{ form_label(form.note, "📝 Note (/20)") }}
-                {{ form_widget(form.note, { 'attr': {'placeholder': 'Ex : 15.5', 'class': 'form-control'} }) }}
-            </div>
+      <div class="mb-3">
+        {{ form_label(form.matiere, "📘 Matière") }}
+        {{ form_widget(form.matiere, {
+          attr: {
+            placeholder: 'Ex : Mathématiques',
+            class: 'form-control',
+            required: true,
+            minlength: 2,
+            maxlength: 100
+          }
+        }) }}
+      </div>
 
-            <div class="mb-3">
-                {{ form_label(form.date, "📅 Date du bulletin") }}
-                {{ form_widget(form.date, { 'attr': {'class': 'form-control'} }) }}
-            </div>
+      <div class="mb-3">
+        {{ form_label(form.note, "📝 Note (/20)") }}
+        {{ form_widget(form.note, {
+          attr: {
+            placeholder: 'Ex : 15.5',
+            class: 'form-control',
+            required: true,
+            inputmode: 'decimal',
+            pattern: '^\\d+(?:[\\.,]\\d{1,2})?$',
+            min: 0, max: 20, step: '0.01'
+          }
+        }) }}
+      </div>
 
-            <div class="mb-3">
-                {{ form_label(form.semestre, "📚 Semestre") }}
-                {{ form_widget(form.semestre, { 'attr': {'placeholder': 'Ex : S1, S2', 'class': 'form-control'} }) }}
-            </div>
+      <div class="mb-3">
+        {{ form_label(form.date, "📅 Date du bulletin") }}
+        {{ form_widget(form.date, {
+          attr: {
+            class: 'form-control',
+            max: ('now'|date('Y-m-d'))         # optional, but if given not in the future
+          }
+        }) }}
+      </div>
 
-            <button class="btn btn-success mt-3">
-                <i class="fas fa-save"></i> Enregistrer
-            </button>
-        {{ form_end(form) }}
+      <div class="mb-3">
+        {{ form_label(form.semestre, "📚 Semestre") }}
+        {{ form_widget(form.semestre, {
+          attr: {
+            placeholder: 'Ex : S1, S2',
+            class: 'form-control',
+            pattern: '^S\\d{1,2}$',            # optional; if filled, looks like S1/S2…
+            title: 'Format attendu : S1, S2…'
+          }
+        }) }}
+      </div>
 
-        <a href="{{ path('bulletin_by_etudiant', { id: etudiant.id }) }}" class="btn btn-secondary mt-3">
-            ⬅ Retour
-        </a>
-    </div>
+      <button class="btn btn-success mt-3">
+        <i class="fas fa-save"></i> Enregistrer
+      </button>
+
+    {{ form_end(form) }}
+
+    <a href="{{ path('bulletin_by_etudiant', { id: etudiant.id }) }}" class="btn btn-secondary mt-3">
+      ⬅ Retour
+    </a>
+  </div>
 </div>
+
+{# ---------- JS validation (touched-first) ---------- #}
+<script>
+(function () {
+  const form = document.getElementById('bulletin-form');
+  if (!form) return;
+
+  const el = {
+    matiere:  document.getElementById('bulletin_matiere'),
+    note:     document.getElementById('bulletin_note'),
+    date:     document.getElementById('bulletin_date'),
+    semestre: document.getElementById('bulletin_semestre')
+  };
+  const inputs = Object.values(el).filter(Boolean);
+  const today  = new Date().toISOString().slice(0,10);
+
+  function fb(input){
+    let n = input.nextElementSibling;
+    if (!(n && n.classList && n.classList.contains('invalid-feedback'))) {
+      n = document.createElement('div');
+      n.className = 'invalid-feedback';
+      input.insertAdjacentElement('afterend', n);
+    }
+    return n;
+  }
+  function setErr(i, msg){ i.classList.add('is-invalid'); fb(i).textContent = msg||''; }
+  function clrErr(i){ i.classList.remove('is-invalid'); fb(i).textContent = ''; }
+
+  const validators = new Map([
+    [el.matiere, (v) => {
+      if (!v) return 'La matière est obligatoire.';
+      if (v.length < 2) return 'Au moins 2 caractères.';
+      return '';
+    }],
+    [el.note, (vRaw) => {
+      if (!vRaw) return 'La note est obligatoire.';
+      const v = vRaw.replace(',', '.');
+      const num = Number(v);
+      if (!Number.isFinite(num)) return 'Valeur numérique attendue.';
+      if (num < 0 || num > 20) return 'La note doit être entre 0 et 20.';
+      if (!/^\d+(?:[.,]\d{1,2})?$/.test(vRaw)) return 'Deux décimales max.';
+      return '';
+    }],
+    [el.date, (v) => {
+      if (!v) return ''; // optional
+      if (v > today) return 'La date ne peut pas être dans le futur.';
+      return '';
+    }],
+    [el.semestre, (v) => {
+      if (!v) return ''; // optional
+      if (!/^S\d{1,2}$/i.test(v.trim())) return 'Format attendu : S1, S2…';
+      return '';
+    }],
+  ]);
+
+  function validateField(input){
+    const rule = validators.get(input);
+    if (!rule) return true;
+    const msg = rule((input.value || '').trim());
+    if (msg){ setErr(input, msg); return false; }
+    clrErr(input); return true;
+  }
+
+  function markTouched(i){ i.dataset.touched = '1'; }
+
+  // UX: validate only after user interaction
+  for (const i of inputs){
+    if (i === el.note){
+      i.addEventListener('input', () => { if (i.dataset.touched === '1') validateField(i); });
+      i.addEventListener('blur',  () => { markTouched(i); validateField(i); });
+      i.addEventListener('change',() => { if (i.dataset.touched === '1') validateField(i); });
+    } else {
+      i.addEventListener('input', () => { if (i.dataset.touched === '1') validateField(i); });
+      i.addEventListener('blur',  () => { markTouched(i); validateField(i); });
+      i.addEventListener('change',() => { if (i.dataset.touched === '1') validateField(i); });
+    }
+  }
+
+  form.addEventListener('submit', (e) => {
+    inputs.forEach(i => i.dataset.touched = '1');
+    let ok = true;
+    for (const i of inputs){ if (!validateField(i)) ok = false; }
+    if (!ok){
+      e.preventDefault(); e.stopPropagation();
+      const first = form.querySelector('.is-invalid'); if (first) first.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  });
+})();
+</script>
 {% endblock %}

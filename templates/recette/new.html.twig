@@ -3,29 +3,127 @@
 {% block title %}Nouvelle Recette{% endblock %}
 
 {% block body %}
-    <h2 class="text-success mb-4">💰 Ajouter une nouvelle recette</h2>
+  <h2 class="text-success mb-4">💰 Ajouter une nouvelle recette</h2>
 
-    {{ form_start(form) }}
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.source) }}
-                {{ form_widget(form.source, {'attr': {'class': 'form-select'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.montantR) }}
-                {{ form_widget(form.montantR, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.dateR) }}
-                {{ form_widget(form.dateR, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            <div class="col-12 mb-3">
-                {{ form_label(form.noteR) }}
-                {{ form_widget(form.noteR, {'attr': {'class': 'form-control', 'rows': 3}}) }}
-            </div>
-        </div>
+  {{ form_start(form, { attr: { id: 'recette-form', novalidate: 'novalidate' } }) }}
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.source) }}
+        {{ form_widget(form.source, { attr: { class: 'form-select', required: true } }) }}
+        <div class="invalid-feedback"></div>
+      </div>
 
-        <button class="btn btn-success">Enregistrer</button>
-        <a href="{{ path('recette_index') }}" class="btn btn-secondary">↩ Retour</a>
-    {{ form_end(form) }}
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.montantR) }}
+        {{ form_widget(form.montantR, { attr: { class: 'form-control', required: true, step: '0.01', min: '0.01', inputmode: 'decimal' } }) }}
+        <div class="invalid-feedback"></div>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.dateR) }}
+        {{ form_widget(form.dateR, { attr: { class: 'form-control', required: true, max: ("now"|date('Y-m-d')) } }) }}
+        <div class="invalid-feedback"></div>
+      </div>
+
+      <div class="col-12 mb-3">
+        {{ form_label(form.noteR) }}
+        {{ form_widget(form.noteR, { attr: { class: 'form-control', rows: 3, maxlength: 1000, placeholder: 'Optionnel (max 1000 caractères)' } }) }}
+        <div class="invalid-feedback"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-success">Enregistrer</button>
+    <a href="{{ path('recette_index') }}" class="btn btn-secondary">↩ Retour</a>
+  {{ form_end(form) }}
+
+  <script>
+    (function () {
+      const form = document.getElementById('recette-form');
+      if (!form) return;
+
+      const $ = (name) => form.querySelector(`[name$="[${name}]"]`);
+      const fields = {
+        source: $('source'),
+        montantR: $('montantR'),
+        dateR: $('dateR'),
+        noteR: $('noteR'),
+      };
+
+      const getFb = (el) => el?.closest('.mb-3')?.querySelector('.invalid-feedback');
+
+      function markInvalid(input, message) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        const fb = getFb(input);
+        if (fb) fb.textContent = message || '';
+      }
+
+      function markValid(input) {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+        const fb = getFb(input);
+        if (fb) fb.textContent = '';
+      }
+
+      function todayISO() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      }
+
+      function validateField(input) {
+        if (!input) return true;
+        const name = input.name;
+        const v = input.value.trim();
+
+        // source (required)
+        if (name.endsWith('[source]')) {
+          if (!v) { markInvalid(input, 'La source est obligatoire.'); return false; }
+          markValid(input); return true;
+        }
+
+        // montantR (required, > 0)
+        if (name.endsWith('[montantR]')) {
+          if (!v) { markInvalid(input, 'Le montant est obligatoire.'); return false; }
+          const n = parseFloat(v.replace(',', '.'));
+          if (isNaN(n) || n <= 0) { markInvalid(input, 'Le montant doit être supérieur à zéro.'); return false; }
+          markValid(input); return true;
+        }
+
+        // dateR (required, <= today)
+        if (name.endsWith('[dateR]')) {
+          if (!v) { markInvalid(input, 'La date est obligatoire.'); return false; }
+          const max = todayISO();
+          if (v > max) { markInvalid(input, 'La date ne peut pas être dans le futur.'); return false; }
+          markValid(input); return true;
+        }
+
+        // noteR (optional, <= 1000)
+        if (name.endsWith('[noteR]')) {
+          if (!v) { input.classList.remove('is-invalid','is-valid'); return true; }
+          if (v.length > 1000) { markInvalid(input, 'La note ne peut pas dépasser 1000 caractères.'); return false; }
+          markValid(input); return true;
+        }
+
+        return true;
+      }
+
+      // Validate on blur; soften UX on first keystrokes
+      Object.values(fields).forEach((el) => {
+        if (!el) return;
+        el.addEventListener('blur', () => validateField(el));
+        el.addEventListener('input', () => el.classList.remove('is-invalid'));
+      });
+
+      // Validate all on submit
+      form.addEventListener('submit', (e) => {
+        let ok = true;
+        Object.values(fields).forEach((el) => { ok = validateField(el) && ok; });
+        if (!ok) {
+          e.preventDefault();
+          e.stopPropagation();
+          form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    })();
+  </script>
 {% endblock %}

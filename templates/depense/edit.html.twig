@@ -3,32 +3,137 @@
 {% block title %}Modifier dépense{% endblock %}
 
 {% block body %}
-    <h2 class="text-warning mb-4">✏ Modifier la dépense</h2>
+<h2 class="text-warning mb-4">✏ Modifier la dépense</h2>
 
-    {{ form_start(form) }}
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.categorie) }}
-                {{ form_widget(form.categorie, {'attr': {'class': 'form-select'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.montantD) }}
-                {{ form_widget(form.montantD, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.dateD) }}
-                {{ form_widget(form.dateD, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            <div class="col-12 mb-3">
-                {{ form_label(form.description) }}
-                {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': 4}}) }}
-            </div>
-        </div>
+{{ form_start(form, { attr: { id: 'depense-form', novalidate: 'novalidate' } }) }}
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.categorie) }}
+      {{ form_widget(form.categorie, {
+        attr: {
+          class: 'form-select',
+          required: true
+        }
+      }) }}
+    </div>
 
-        <button class="btn btn-warning">Mettre à jour</button>
-        <a href="{{ path('depense_index') }}" class="btn btn-secondary">↩ Retour</a>
-    {{ form_end(form) }}
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.montantD) }}
+      {{ form_widget(form.montantD, {
+        attr: {
+          class: 'form-control',
+          required: true,
+          inputmode: 'decimal',
+          pattern: '^\\d+(?:[\\.,]\\d{1,2})?$',
+          min: '0.01',
+          step: '0.01'
+        }
+      }) }}
+    </div>
 
-    <hr>
-    {{ include('depense/_delete_form.html.twig') }}
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.dateD) }}
+      {{ form_widget(form.dateD, {
+        attr: {
+          class: 'form-control',
+          required: true,
+          max: ('now'|date('Y-m-d'))
+        }
+      }) }}
+    </div>
+
+    <div class="col-12 mb-3">
+      {{ form_label(form.description) }}
+      {{ form_widget(form.description, {
+        attr: {
+          class: 'form-control',
+          rows: 4,
+          maxlength: 255
+        }
+      }) }}
+    </div>
+  </div>
+
+  <button class="btn btn-warning">Mettre à jour</button>
+  <a href="{{ path('depense_index') }}" class="btn btn-secondary">↩ Retour</a>
+{{ form_end(form) }}
+
+<hr>
+
+{# same JS as in "new" #}
+<script>
+(function () {
+  const form = document.getElementById('depense-form');
+  if (!form) return;
+
+  const el = {
+    categorie:   document.getElementById('depense_categorie'),
+    montant:     document.getElementById('depense_montantD'),
+    date:        document.getElementById('depense_dateD'),
+    description: document.getElementById('depense_description')
+  };
+  const inputs = Object.values(el).filter(Boolean);
+  const today  = new Date().toISOString().slice(0,10);
+
+  function fb(input){
+    let n = input.nextElementSibling;
+    if (!(n && n.classList && n.classList.contains('invalid-feedback'))) {
+      n = document.createElement('div');
+      n.className = 'invalid-feedback';
+      input.insertAdjacentElement('afterend', n);
+    }
+    return n;
+  }
+  function setErr(i, msg){ i.classList.add('is-invalid'); fb(i).textContent = msg||''; }
+  function clrErr(i){ i.classList.remove('is-invalid'); fb(i).textContent = ''; }
+
+  const validators = new Map([
+    [el.categorie, (v) => !v ? 'La catégorie est obligatoire.' : ''],
+    [el.montant, (raw) => {
+      if (!raw) return 'Le montant est obligatoire.';
+      const str = raw.replace(',', '.');
+      const num = Number(str);
+      if (!Number.isFinite(num)) return 'Valeur numérique attendue.';
+      if (num <= 0) return 'Le montant doit être supérieur à 0.';
+      if (!/^\d+(?:[.,]\d{1,2})?$/.test(raw)) return 'Deux décimales maximum.';
+      return '';
+    }],
+    [el.date, (v) => {
+      if (!v) return 'La date est obligatoire.';
+      if (v > today) return 'La date ne peut pas être dans le futur.';
+      return '';
+    }],
+    [el.description, (v) => {
+      if (!v) return '';
+      if (v.length > 255) return '255 caractères maximum.';
+      return '';
+    }]
+  ]);
+
+  function validateField(i){
+    const rule = validators.get(i);
+    if (!rule) return true;
+    const msg = rule((i.value || '').trim());
+    if (msg){ setErr(i, msg); return false; }
+    clrErr(i); return true;
+  }
+  function markTouched(i){ i.dataset.touched = '1'; }
+
+  for (const i of inputs){
+    i.addEventListener('input', () => { if (i.dataset.touched === '1') validateField(i); });
+    i.addEventListener('blur',  () => { markTouched(i); validateField(i); });
+    i.addEventListener('change',() => { if (i.dataset.touched === '1') validateField(i); });
+  }
+
+  form.addEventListener('submit', (e) => {
+    inputs.forEach(i => i.dataset.touched = '1');
+    let ok = true;
+    for (const i of inputs){ if (!validateField(i)) ok = false; }
+    if (!ok){
+      e.preventDefault(); e.stopPropagation();
+      const first = form.querySelector('.is-invalid'); if (first) first.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  });
+})();
+</script>
 {% endblock %}

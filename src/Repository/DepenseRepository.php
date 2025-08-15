@@ -1,11 +1,10 @@
 <?php
 
 namespace App\Repository;
-
 use App\Entity\Depense;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-
+use Doctrine\DBAL\Types\Types;
 /**
  * @extends ServiceEntityRepository<Depense>
  */
@@ -67,13 +66,7 @@ public function sumFromDate(\DateTimeInterface $startDate): float
         ->getSingleScalarResult();
 }
 
-public function sumAll(): float
-{
-    return (float) $this->createQueryBuilder('d')
-        ->select('SUM(d.montantD)')
-        ->getQuery()
-        ->getSingleScalarResult();
-}
+
  public function searchQuery(?string $categorie)
     {
         $qb = $this->createQueryBuilder('d')
@@ -84,5 +77,54 @@ public function sumAll(): float
         }
 
         return $qb->getQuery();
+ 
     }
+
+    //D
+    public function sumAll(): float
+    {
+        return (float) $this->createQueryBuilder('d')
+            ->select('COALESCE(SUM(d.montantD), 0)') // ⬅ change to d.montant if needed
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function sumBetween(\DateTimeInterface $start, \DateTimeInterface $end): float
+{
+    return (float) $this->createQueryBuilder('d')
+        ->select('COALESCE(SUM(d.montantD), 0)') // adjust if your amount field differs
+        ->andWhere('d.dateD >= :start')
+        ->andWhere('d.dateD < :end')
+        ->setParameter('start', $start, Types::DATETIME_MUTABLE) // or DATETIME_IMMUTABLE if applicable
+        ->setParameter('end', $end, Types::DATETIME_MUTABLE)
+        ->getQuery()
+        ->getSingleScalarResult();
+}
+    /** Returns [ ['categorie' => 'X', 'total' => 123.0], ... ] */
+    public function sumByCategoryTop(int $limit = 5): array
+{
+    $rows = $this->createQueryBuilder('d')
+        ->select('d.categorie AS categorie, COALESCE(SUM(d.montantD), 0) AS total') // adjust montant field if needed
+        ->groupBy('d.categorie')
+        ->orderBy('total', 'DESC')
+        ->setMaxResults($limit)
+        ->getQuery()
+        ->getArrayResult();
+
+    foreach ($rows as &$r) {
+        $cat = $r['categorie'];
+        if ($cat instanceof \BackedEnum) {
+            $r['categorie'] = $cat->value;
+        } elseif ($cat instanceof \UnitEnum) {
+            $r['categorie'] = $cat->name;
+        } else {
+            $r['categorie'] = (string) $cat; // fallback if custom type
+        }
+        $r['total'] = (float) $r['total'];
+    }
+    unset($r);
+
+    return $rows;
+}
+
 }

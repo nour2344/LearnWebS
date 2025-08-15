@@ -3,34 +3,151 @@
 {% block title %}Nouveau Paiement{% endblock %}
 
 {% block body %}
-    <h2 class="text-success mb-4">💰 Ajouter un paiement</h2>
+  <h2 class="text-success mb-4">💰 Ajouter un paiement</h2>
 
-    {{ form_start(form) }}
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.typePaiement) }}
-                {{ form_widget(form.typePaiement, {'attr': {'class': 'form-select'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.montantP) }}
-                {{ form_widget(form.montantP, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.dateP) }}
-                {{ form_widget(form.dateP, {'attr': {'class': 'form-control'}}) }}
-            </div>
-            
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.etudiant) }}
-                {{ form_widget(form.etudiant, {'attr': {'class': 'form-select'}}) }}
-            </div>
-            <div class="col-12 mb-3">
-                {{ form_label(form.note) }}
-                {{ form_widget(form.note, {'attr': {'class': 'form-control', 'rows': 4}}) }}
-            </div>
-        </div>
+  {{ form_start(form, { attr: { id: 'paiement-form', novalidate: 'novalidate' } }) }}
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.typePaiement) }}
+        {{ form_widget(form.typePaiement, {
+          attr: { class: 'form-select', required: true }
+        }) }}
+        <div class="invalid-feedback"></div>
+      </div>
 
-        <button class="btn btn-success">Enregistrer</button>
-        <a href="{{ path('paiement_index') }}" class="btn btn-secondary">↩ Retour</a>
-    {{ form_end(form) }}
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.montantP) }}
+        {{ form_widget(form.montantP, {
+          attr: { class: 'form-control', required: true, step: '0.01', min: '0.01', inputmode: 'decimal' }
+        }) }}
+        <div class="invalid-feedback"></div>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.dateP) }}
+        {{ form_widget(form.dateP, {
+          attr: { class: 'form-control', required: true, max: ("now"|date('Y-m-d')) }
+        }) }}
+        <div class="invalid-feedback"></div>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.etudiant) }}
+        {{ form_widget(form.etudiant, {
+          attr: { class: 'form-select', required: true }
+        }) }}
+        <div class="invalid-feedback"></div>
+      </div>
+
+      <div class="col-12 mb-3">
+        {{ form_label(form.note) }}
+        {{ form_widget(form.note, {
+          attr: { class: 'form-control', rows: 4, maxlength: 500, placeholder: 'Facultatif (max 500 caractères)' }
+        }) }}
+        <div class="invalid-feedback"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-success">Enregistrer</button>
+    <a href="{{ path('paiement_index') }}" class="btn btn-secondary">↩ Retour</a>
+  {{ form_end(form) }}
+
+  <script>
+    (function () {
+      const form = document.getElementById('paiement-form');
+      if (!form) return;
+
+      const $ = (name) => form.querySelector(`[name$="[${name}]"]`);
+      const fields = {
+        typePaiement: $('typePaiement'),
+        montantP: $('montantP'),
+        dateP: $('dateP'),
+        etudiant: $('etudiant'),
+        note: $('note'),
+      };
+
+      const getFb = (el) => el?.closest('.mb-3')?.querySelector('.invalid-feedback');
+
+      function markInvalid(input, message) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        const fb = getFb(input);
+        if (fb) fb.textContent = message || '';
+      }
+
+      function markValid(input) {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+        const fb = getFb(input);
+        if (fb) fb.textContent = '';
+      }
+
+      function todayISO() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      }
+
+      function validateField(input) {
+        if (!input) return true;
+        const name = input.name;
+        const valRaw = input.value.trim();
+
+        // typePaiement (required)
+        if (name.endsWith('[typePaiement]')) {
+          if (!valRaw) { markInvalid(input, 'Le type de paiement est obligatoire.'); return false; }
+          markValid(input); return true;
+        }
+
+        // montantP (> 0)
+        if (name.endsWith('[montantP]')) {
+          if (!valRaw) { markInvalid(input, 'Le montant est obligatoire.'); return false; }
+          const n = parseFloat(valRaw.replace(',', '.'));
+          if (isNaN(n) || n <= 0) { markInvalid(input, 'Le montant doit être supérieur à 0.'); return false; }
+          markValid(input); return true;
+        }
+
+        // dateP (required, <= today)
+        if (name.endsWith('[dateP]')) {
+          if (!valRaw) { markInvalid(input, 'La date est obligatoire.'); return false; }
+          const max = todayISO();
+          if (valRaw > max) { markInvalid(input, 'La date ne peut pas être dans le futur.'); return false; }
+          markValid(input); return true;
+        }
+
+        // etudiant (required)
+        if (name.endsWith('[etudiant]')) {
+          if (!valRaw) { markInvalid(input, "L'élève est obligatoire."); return false; }
+          markValid(input); return true;
+        }
+
+        // note (optional, <= 500 chars)
+        if (name.endsWith('[note]')) {
+          if (valRaw.length > 500) { markInvalid(input, 'La note ne peut pas dépasser 500 caractères.'); return false; }
+          // Only mark valid if non-empty to avoid green border for empty optional field
+          if (valRaw.length) markValid(input); else input.classList.remove('is-invalid', 'is-valid');
+          return true;
+        }
+
+        return true;
+      }
+
+      // blur & input listeners (don’t show everything upfront)
+      Object.values(fields).forEach((el) => {
+        if (!el) return;
+        el.addEventListener('blur', () => validateField(el));
+        el.addEventListener('input', () => el.classList.remove('is-invalid'));
+      });
+
+      // submit
+      form.addEventListener('submit', (e) => {
+        let ok = true;
+        Object.values(fields).forEach((el) => { ok = validateField(el) && ok; });
+        if (!ok) {
+          e.preventDefault();
+          e.stopPropagation();
+          form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    })();
+  </script>
 {% endblock %}

@@ -3,32 +3,160 @@
 {% block title %}Nouveau Salaire{% endblock %}
 
 {% block body %}
-    <h2 class="text-success mb-4">💵 Ajouter un salaire</h2>
+  <h2 class="text-success mb-4">💵 Ajouter un salaire</h2>
 
-    {{ form_start(form) }}
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.mois) }}
-                {{ form_widget(form.mois, {'attr': {'class': 'form-control'}}) }}
-            </div>
+  {{ form_start(form, { attr: { id: 'salaire-form', novalidate: 'novalidate' } }) }}
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.mois) }}
+        {{ form_widget(form.mois, {
+          attr: {
+            class: 'form-control',
+            required: true,
+            minlength: 3,
+            maxlength: 255,
+            placeholder: 'Ex : Août 2025'
+          }
+        }) }}
+        <div class="invalid-feedback"></div>
+      </div>
 
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.montant) }}
-                {{ form_widget(form.montant, {'attr': {'class': 'form-control'}}) }}
-            </div>
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.montant) }}
+        {{ form_widget(form.montant, {
+          attr: {
+            class: 'form-control',
+            required: true,
+            step: '0.01',
+            min: '0.01',
+            inputmode: 'decimal'
+          }
+        }) }}
+        <div class="invalid-feedback"></div>
+      </div>
 
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.dateP) }}
-                {{ form_widget(form.dateP, {'attr': {'class': 'form-control'}}) }}
-            </div>
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.dateP) }}
+        {{ form_widget(form.dateP, {
+          attr: {
+            class: 'form-control',
+            max: ("now"|date('Y-m-d')),
+            required: true
+          }
+        }) }}
+        <div class="invalid-feedback"></div>
+      </div>
 
-            <div class="col-md-6 mb-3">
-                {{ form_label(form.personnel) }}
-                {{ form_widget(form.personnel, {'attr': {'class': 'form-select'}}) }}
-            </div>
-        </div>
+      <div class="col-md-6 mb-3">
+        {{ form_label(form.personnel) }}
+        {{ form_widget(form.personnel, {
+          attr: {
+            class: 'form-select',
+            required: true
+          }
+        }) }}
+        <div class="invalid-feedback"></div>
+      </div>
+    </div>
 
-        <button class="btn btn-success">Enregistrer</button>
-        <a href="{{ path('salaire_index') }}" class="btn btn-secondary">↩ Retour</a>
-    {{ form_end(form) }}
+    <button class="btn btn-success">Enregistrer</button>
+    <a href="{{ path('salaire_index') }}" class="btn btn-secondary">↩ Retour</a>
+  {{ form_end(form) }}
+
+  <script>
+    (function () {
+      const form = document.getElementById('salaire-form');
+      if (!form) return;
+
+      const $ = (name) => form.querySelector(`[name$="[${name}]"]`);
+      const fields = {
+        mois: $('mois'),
+        montant: $('montant'),
+        dateP: $('dateP'),
+        personnel: $('personnel'),
+      };
+
+      const getFb = (el) => el?.closest('.mb-3')?.querySelector('.invalid-feedback');
+
+      function markInvalid(input, message) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        const fb = getFb(input);
+        if (fb) fb.textContent = message || '';
+      }
+
+      function markValid(input) {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+        const fb = getFb(input);
+        if (fb) fb.textContent = '';
+      }
+
+      function todayISO() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      }
+
+      function validateField(input) {
+        if (!input) return true;
+        const name = input.name;
+        const v = input.value.trim();
+
+        // mois (required, min length)
+        if (name.endsWith('[mois]')) {
+          if (!v) { markInvalid(input, 'Le mois est obligatoire.'); return false; }
+          if (v.length < 3) { markInvalid(input, 'Le mois doit contenir au moins 3 caractères.'); return false; }
+          markValid(input); return true;
+        }
+
+        // montant (required, > 0)
+        if (name.endsWith('[montant]')) {
+          if (!v) { markInvalid(input, 'Le montant est obligatoire.'); return false; }
+          const n = parseFloat(v.replace(/\s/g,'').replace(',', '.'));
+          if (isNaN(n) || n <= 0) { markInvalid(input, 'Le montant doit être supérieur à zéro.'); return false; }
+          markValid(input); return true;
+        }
+
+        // dateP (REQUIRED, <= today)
+        if (name.endsWith('[dateP]')) {
+          if (!v) { markInvalid(input, 'La date de paiement est obligatoire.'); return false; }
+          const max = todayISO();
+          if (v > max) { markInvalid(input, 'La date ne peut pas être dans le futur.'); return false; }
+          markValid(input); return true;
+        }
+
+        // personnel (required)
+        if (name.endsWith('[personnel]')) {
+          if (!v) { markInvalid(input, 'Le personnel est obligatoire.'); return false; }
+          markValid(input); return true;
+        }
+
+        return true;
+      }
+
+      // Blur validation + soften UX during typing
+      Object.values(fields).forEach((el) => {
+        if (!el) return;
+        el.addEventListener('blur', () => validateField(el));
+        el.addEventListener('input', () => el.classList.remove('is-invalid'));
+        el.addEventListener('change', () => validateField(el));
+      });
+
+      form.addEventListener('submit', (e) => {
+        let ok = true;
+        let firstInvalid = null;
+        Object.values(fields).forEach((el) => {
+          const valid = validateField(el);
+          if (!valid && !firstInvalid) firstInvalid = el;
+          ok = valid && ok;
+        });
+        if (!ok) {
+          e.preventDefault();
+          e.stopPropagation();
+          firstInvalid?.focus();
+          firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    })();
+  </script>
 {% endblock %}

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Repository;
+use Doctrine\DBAL\Types\Types;
 
 use App\Entity\Recette;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -68,13 +69,7 @@ public function sumFromDate(\DateTimeInterface $startDate): float
         ->getSingleScalarResult();
 }
 
-public function sumAll(): float
-{
-    return (float) $this->createQueryBuilder('r')
-        ->select('SUM(r.montantR)')
-        ->getQuery()
-        ->getSingleScalarResult();
-}
+
 
 public function searchQuery(?string $source)
     {
@@ -88,4 +83,26 @@ public function searchQuery(?string $source)
 
         return $qb->getQuery();
     }
+
+    //D
+     public function sumAll(): float
+    {
+        return (float) $this->createQueryBuilder('r')
+            ->select('COALESCE(SUM(r.montantR), 0)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+   
+public function sumBetween(\DateTimeInterface $start, \DateTimeInterface $end): float
+{
+    return (float) $this->createQueryBuilder('r')
+        ->select('COALESCE(SUM(r.montantR), 0)')
+        ->andWhere('r.dateR >= :start')
+        ->andWhere('r.dateR < :end')
+        ->setParameter('start', $start, Types::DATETIME_MUTABLE) // or DATETIME_IMMUTABLE if applicable
+        ->setParameter('end', $end, Types::DATETIME_MUTABLE)
+        ->getQuery()
+        ->getSingleScalarResult();
+}
 }
