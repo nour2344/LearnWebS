@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+{% block title %}Bulletin{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 m-0">Bulletin</h1>
+    <a href="{{ path('parent_bulletins') }}" class="btn btn-outline-secondary">⬅️ Retour</a>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <p><strong>Élève :</strong> {{ bulletin.etudiant ? bulletin.etudiant.nom ~ ' ' ~ bulletin.etudiant.prenom : '—' }}</p>
+      <p><strong>Période :</strong> {{ bulletin.periode ?? bulletin.mois ?? '—' }}</p>
+      <p><strong>Créé le :</strong> {{ bulletin.createdAt is defined and bulletin.createdAt ? bulletin.createdAt|date('d/m/Y H:i') : '—' }}</p>
+
+      {# Ajoute ici les matières/notes/etc selon ton entité #}
+    </div>
+  </div>
+</div>
+{% endblock %}

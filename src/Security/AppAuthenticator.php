@@ -22,38 +22,68 @@ class AppAuthenticator extends AbstractLoginFormAuthenticator
 
     public const LOGIN_ROUTE = 'app_login';
 
-    public function __construct(private UrlGeneratorInterface $urlGenerator)
-    {
-    }
+    public function __construct(private UrlGeneratorInterface $urlGenerator) {}
 
     public function authenticate(Request $request): Passport
     {
-        $email = $request->getPayload()->getString('email');
+        // Support both JSON and regular form posts
+        if ('json' === $request->getContentTypeFormat()) {
+            $data = $request->toArray();
+            $email    = (string) ($data['email'] ?? '');
+            $password = (string) ($data['password'] ?? '');
+            $csrf     = (string) ($data['_csrf_token'] ?? '');
+            $remember = !empty($data['_remember_me']);
+        } else {
+            $email    = (string) $request->request->get('email', '');
+            $password = (string) $request->request->get('password', '');
+            $csrf     = (string) $request->request->get('_csrf_token', '');
+            $remember = (bool) $request->request->get('_remember_me', false);
+        }
 
+        // keep the last username for the login form
         $request->getSession()->set(SecurityRequestAttributes::LAST_USERNAME, $email);
+
+        $badges = [
+            new CsrfTokenBadge('authenticate', $csrf),
+        ];
+        // Only set remember-me if the user opted in (checkbox checked)
+        if ($remember) {
+            $badges[] = new RememberMeBadge();
+        }
 
         return new Passport(
             new UserBadge($email),
-            new PasswordCredentials($request->getPayload()->getString('password')),
-            [
-                new CsrfTokenBadge('authenticate', $request->getPayload()->getString('_csrf_token')),
-                new RememberMeBadge(),
-            ]
+            new PasswordCredentials($password),
+            $badges
         );
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
-    {
-        if ($targetPath = $this->getTargetPath($request->getSession(), $firewallName)) {
+{
+    $roles = $token->getRoleNames();
+    $targetPath = $this->getTargetPath($request->getSession(), $firewallName);
+    $path = $targetPath ? (parse_url($targetPath, PHP_URL_PATH) ?? '') : '';
+
+    if (in_array('ROLE_PARENT', $roles, true)) {
+        if ($targetPath && str_starts_with($path, '/parent')) {
             return new RedirectResponse($targetPath);
         }
-
-        // For example:
-        return new RedirectResponse($this->urlGenerator->generate('app_admin'));
+        return new RedirectResponse($this->urlGenerator->generate('parent_home'));
     }
 
-    protected function getLoginUrl(Request $request): string
-    {
-        return $this->urlGenerator->generate(self::LOGIN_ROUTE);
+    if (in_array('ROLE_ADMIN', $roles, true) || in_array('ROLE_SUPER_ADMIN', $roles, true)) {
+        if ($targetPath && str_starts_with($path, '/')) {
+            return new RedirectResponse($targetPath);
+        }
+        return new RedirectResponse($this->urlGenerator->generate('home'));
     }
+
+    return new RedirectResponse($this->urlGenerator->generate('home'));
+}
+
+protected function getLoginUrl(Request $request): string
+{
+    return $this->urlGenerator->generate(self::LOGIN_ROUTE);
+}
+
 }

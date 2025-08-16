@@ -2,6 +2,9 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use App\Entity\ParentProfile;
 use App\Repository\EtudiantRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -54,6 +57,13 @@ class Etudiant
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $dernierPaiement = null;
 
+
+    // inside class:
+#[ORM\ManyToMany(targetEntity: ParentProfile::class, mappedBy: 'children')]
+private Collection $parents;
+
+#[ORM\Column(type: 'boolean')]
+private bool $bulletinsVisibles = false;
     // ---- Getters / Setters ----
 
     public function getId(): ?int
@@ -139,4 +149,25 @@ class Etudiant
         $this->dernierPaiement = $dernierPaiement;
         return $this;
     }
+
+    public function __construct()
+{
+    // keep your existing inits
+    $this->parents = new ArrayCollection();
+}
+
+/** @return Collection<int, ParentProfile> */
+public function getParents(): Collection { return $this->parents; }
+
+
+public function isBulletinsVisibles(): bool
+{
+    return $this->bulletinsVisibles;
+}
+
+public function setBulletinsVisibles(bool $visible): self
+{
+    $this->bulletinsVisibles = $visible;
+    return $this;
+}
 }

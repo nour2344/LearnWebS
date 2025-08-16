@@ -1,0 +1,80 @@
+{% extends 'base.html.twig' %}
+{% block title %}Espace Parents{% endblock %}
+
+{# Compute once, outside blocks so all blocks can use it #}
+{% set parentProfile = app.user ? attribute(app.user, 'parentProfile') : null %}
+{% set children = parentProfile ? parentProfile.children : [] %}
+
+{% block nav_left %}
+  {% if children|length == 1 %}
+    <span class="badge bg-light border text-dark">
+      <i class="fa-solid fa-child me-1"></i>
+      {{ children|first.nom }} {{ children|first.prenom }}
+    </span>
+  {% elseif children|length > 1 %}
+    <div class="dropdown">
+      <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fa-solid fa-children me-1"></i> Mes enfants ({{ children|length }})
+      </button>
+      <div class="dropdown-menu">
+        {% for c in children %}
+          <span class="dropdown-item disabled">{{ c.nom }} {{ c.prenom }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block body %}
+  <div class="row g-3">
+    <div class="col-12 col-lg-8">
+      <div class="p-4 bg-white rounded-4 shadow-sm">
+        <h1 class="h3 mb-2">Espace Parents</h1>
+        <p class="text-muted mb-4">Consultez les bulletins de vos enfants.</p>
+        <a class="btn btn-primary" href="{{ path('parent_bulletins') }}">
+          <i class="fa-regular fa-file-lines me-1"></i> Voir les bulletins
+        </a>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+  <div class="p-4 bg-white rounded-4 shadow-sm">
+    <div class="small text-muted mb-2">Résumé</div>
+
+    <div class="d-flex flex-column gap-2">
+      <div>
+        <i class="fa-solid fa-children me-2"></i>{{ children|length }} enfant(s)
+      </div>
+
+      {# --- 1 child: show name + class --- #}
+      {% if children|length == 1 %}
+        {% set child = children|first %}
+        <div>
+          <i class="fa-solid fa-user me-2"></i>
+          Élève : {{ child.nom }} {{ child.prenom }}
+        </div>
+        {% if child.classe is defined %}
+          <div>
+            <i class="fa-solid fa-school me-2"></i>
+            Classe : {{ child.classe }}
+          </div>
+        {% endif %}
+
+      {# --- multiple children: list each name with class --- #}
+      {% elseif children|length > 1 %}
+        {% for c in children %}
+          <div>
+            <i class="fa-solid fa-user me-2"></i>
+            {{ c.nom }} {{ c.prenom }}
+            {% if c.classe is defined %}
+              <span class="text-muted">— {{ c.classe }}</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+  </div>
+{% endblock %}

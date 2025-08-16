@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+{% block title %}Mes bulletins{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+  <h3>Mes bulletins</h3>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Étudiant</th>
+        <th>Classe</th>
+        <th>Date d'inscription</th>
+        <th class="text-end">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for child in children %}
+        <tr>
+          <td>{{ child.nom }} {{ child.prenom }}</td>
+          <td>{{ child.classe }}</td>
+          <td>{{ child.dateInscription ? child.dateInscription|date('d/m/Y') }}</td>
+          <td class="text-end">
+            <a class="btn btn-primary btn-sm"
+               href="{{ path('parent_child_bulletins', {id: child.id}) }}">
+              Ouvrir
+            </a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="text-center text-muted">Aucun enfant lié.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -265,4 +265,16 @@ class EtudiantController extends AbstractController
             'periodLabel' => $periodLabel,
         ]);
     }
+
+    #[Route('/etudiant/{id}/toggle-bulletins', name: 'etudiant_toggle_bulletins')]
+public function toggleBulletins(Etudiant $etudiant, EntityManagerInterface $em): Response
+{
+    $etudiant->setBulletinsVisibles(!$etudiant->isBulletinsVisibles());
+    $em->flush();
+
+    $this->addFlash('success', 'Visibilité des bulletins mise à jour !');
+
+    return $this->redirectToRoute('etudiant_index');
+}
+
 }

@@ -1,73 +1,41 @@
 {% set list = etudiants is defined ? etudiants : pagination %}
 
 {% for etudiant in list %}
-    {% set paidThisMonth = etudiant.dernierPaiement and etudiant.dernierPaiement|date('U') >= ("first day of this month"|date('U')) %}
-    {% set nowU = "now"|date('U') %}
-    {% set dueU = ("last day of this month 23:59:59"|date('U')) %}
-    {% set days = ((dueU - nowU) / 86400) | round(0, 'ceil') %}
+  <tr>
+    <td>{{ etudiant.nom }}</td>
+    <td>{{ etudiant.prenom }}</td>
+    <td>{{ etudiant.classe }}</td>
+    <td>{{ etudiant.dateN ? etudiant.dateN|date('d/m/Y') }}</td>
+    <td>{{ etudiant.numTel }}</td>
+    <td>{{ etudiant.dateInscription ? etudiant.dateInscription|date('d/m/Y') }}</td>
+    <td>
+      {# …votre badge de statut paiement… #}
+    </td>
+    <td>
+      <div class="d-flex justify-content-center gap-2">
+        {# toggle bulletins visibility (POST + CSRF) #}
+        <form method="post"
+              action="{{ path('etudiant_toggle_bulletins', { id: etudiant.id }) }}"
+              onsubmit="event.stopPropagation();">
+          <input type="hidden" name="_token" value="{{ csrf_token('toggle_bulletins_' ~ etudiant.id) }}">
+          <button class="btn btn-sm {{ etudiant.bulletinsVisibles ? 'btn-danger' : 'btn-success' }}">
+            {{ etudiant.bulletinsVisibles ? 'Masquer bulletins' : 'Afficher bulletins' }}
+          </button>
+        </form>
 
-    <tr class="clickable-row" 
-        data-href="{{ path('etudiant_fiche', {'id': etudiant.id}) }}"
-        style="cursor:pointer;">
-        
-        <td>{{ etudiant.nom }}</td>
-        <td>{{ etudiant.prenom }}</td>
-        <td>{{ etudiant.classe }}</td>
-        <td>{{ etudiant.dateN ? etudiant.dateN|date('d/m/Y') }}</td>
-        <td>{{ etudiant.numTel }}</td>
-        <td>{{ etudiant.dateInscription ? etudiant.dateInscription|date('d/m/Y') }}</td>
-
-        <td>
-            {% if paidThisMonth %}
-                <span class="badge bg-success">Payé (mois courant)</span>
-            {% else %}
-                {% if nowU > dueU %}
-                    <span class="badge bg-danger">En retard {{ ((nowU - dueU) / 86400) | round(0, 'ceil') }} j</span>
-                {% elseif days <= 7 %}
-                    <span class="badge bg-warning text-dark">Dans {{ days }} j</span>
-                {% else %}
-                    <span class="badge bg-secondary">Non payé</span>
-                {% endif %}
-            {% endif %}
-        </td>
-
-        <td>
-            <div class="d-flex justify-content-center gap-2">
-                <form method="post" action="{{ path('etudiant_toggle_paiement', {'id': etudiant.id}) }}" onclick="event.stopPropagation();">
-                    <input type="hidden" name="_token" value="{{ csrf_token('toggle_etudiant_' ~ etudiant.id) }}">
-                    <div class="form-check form-switch d-flex align-items-center">
-                        <input class="form-check-input" type="checkbox"
-                               id="toggle_etud_{{ etudiant.id }}"
-                               onchange="this.form.submit()"
-                               {{ paidThisMonth ? 'checked' : '' }}>
-                        <label class="form-check-label ms-2" for="toggle_etud_{{ etudiant.id }}">
-                            {{ paidThisMonth ? 'Payé' : 'Non payé' }}
-                        </label>
-                    </div>
-                </form>
-
-                <a href="{{ path('etudiant_edit', {'id': etudiant.id}) }}" class="btn btn-sm btn-edit btn-icon" onclick="event.stopPropagation();">✏️ Modifier</a>
-                <form method="post" action="{{ path('etudiant_delete', {'id': etudiant.id}) }}" onsubmit="return confirm('Confirmer la suppression ?');" onclick="event.stopPropagation();">
-                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ etudiant.id) }}">
-                    <button class="btn btn-sm btn-delete btn-icon">🗑 Supprimer</button>
-                </form>
-                <a href="{{ path('bulletin_by_etudiant', {'id': etudiant.id}) }}" class="btn btn-warning" onclick="event.stopPropagation();">📄 Bulletin</a>
-            </div>
-        </td>
-    </tr>
+        <a href="{{ path('etudiant_edit', {'id': etudiant.id}) }}" class="btn btn-sm btn-edit btn-icon" onclick="event.stopPropagation();">✏️ Modifier</a>
+        <form method="post" action="{{ path('etudiant_delete', {'id': etudiant.id}) }}"
+              onsubmit="return confirm('Confirmer la suppression ?');"
+              onclick="event.stopPropagation();">
+          <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ etudiant.id) }}">
+          <button class="btn btn-sm btn-delete btn-icon">🗑 Supprimer</button>
+        </form>
+        <a href="{{ path('bulletin_by_etudiant', {'id': etudiant.id}) }}" class="btn btn-warning" onclick="event.stopPropagation();">📄 Bulletin</a>
+      </div>
+    </td>
+  </tr>
 {% else %}
-    <tr>
-        <td colspan="8" class="text-center">Aucun étudiant trouvé.</td>
-    </tr>
+  <tr>
+    <td colspan="8" class="text-center">Aucun étudiant trouvé.</td>
+  </tr>
 {% endfor %}
-
-{# JS to make rows clickable #}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.clickable-row').forEach(row => {
-            row.addEventListener('click', function() {
-                window.location.href = this.dataset.href;
-            });
-        });
-    });
-</script>

@@ -39,55 +39,53 @@
 <body class="container py-4">
 
     {# Compute notifications inside body (before use) #}
-    {% set lp = late_payments() %}
 
     <!-- Top Navbar with Logout on the right -->
     <nav class="navbar navbar-expand-lg bg-light rounded px-3 mb-4">
-        <a class="navbar-brand fw-semibold" href="{{ path('app_admin') }}">Gestion Étudiants</a>
 
         <div class="ms-auto d-flex align-items-center gap-3">
 
-            {# Theme toggle (optional) #}
-            <button id="themeToggle" class="btn btn-sm btn-outline-secondary" aria-label="Toggle dark mode">
-                🌙
-            </button>
+           
 
-            {# Notification bell #}
-            <div class="dropdown notification-bell">
-                <button class="btn btn-light position-relative" id="notifBell"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-bell"></i>
-                    {% if lp|length > 0 %}
-                        <span class="badge bg-danger">{{ lp|length }}</span>
-                    {% endif %}
-                </button>
+          {# ADMIN-ONLY NOTIFICATIONS #}
+    {% if is_granted('ROLE_ADMIN') %}
+      {% set lp = late_payments() %}
+      <div class="dropdown notification-bell">
+        <button class="btn btn-light position-relative" id="notifBell"
+                data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="fas fa-bell"></i>
+          {% if lp|length > 0 %}
+            <span class="badge bg-danger">{{ lp|length }}</span>
+          {% endif %}
+        </button>
 
-                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-notif" aria-labelledby="notifBell">
-                    <li class="dropdown-header fw-semibold">Notifications</li>
+        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-notif" aria-labelledby="notifBell">
+          <li class="dropdown-header fw-semibold">Notifications</li>
 
-                    {% if lp is empty %}
-                        <li><span class="dropdown-item-text text-muted">Aucune notification</span></li>
-                    {% else %}
-                        {% for p in lp %}
-                            {% set displayName = p.displayName
-                                |default(p.personnel is defined and p.personnel
-                                         ? (p.personnel.nomP|default('') ~ ' ' ~ p.personnel.prenomP|default(''))
-                                         : '—') %}
-                            <li class="dropdown-item">
-                                <div class="d-flex flex-column">
-                                    <div>
-                                        <strong>{{ displayName|trim }}</strong>
-                                        — {{ p.mois|default(p.dateP ? p.dateP|date('F Y') : '') }}
-                                    </div>
-                                    <small class="text-danger">
-                                        {% if p.daysLate is defined %}En retard de {{ p.daysLate }} jours{% else %}En retard{% endif %}
-                                    </small>
-                                </div>
-                            </li>
-                        {% endfor %}
-                    {% endif %}
-                </ul>
-            </div>
+          {% if lp is empty %}
+            <li><span class="dropdown-item-text text-muted">Aucune notification</span></li>
+          {% else %}
+            {% for p in lp %}
+              {% set displayName = p.displayName
+                |default(p.personnel is defined and p.personnel
+                         ? (p.personnel.nomP|default('') ~ ' ' ~ p.personnel.prenomP|default(''))
+                         : '—') %}
+              <li class="dropdown-item">
+                <div class="d-flex flex-column">
+                  <div>
+                    <strong>{{ displayName|trim }}</strong>
+                    — {{ p.mois|default(p.dateP ? p.dateP|date('F Y') : '') }}
+                  </div>
+                  <small class="text-danger">
+                    {% if p.daysLate is defined %}En retard de {{ p.daysLate }} jours{% else %}En retard{% endif %}
+                  </small>
+                </div>
+              </li>
+            {% endfor %}
+          {% endif %}
+        </ul>
+      </div>
+    {% endif %}
 
             {# AUTH AREA: put the LOGOUT button here #}
             {% if app.user %}

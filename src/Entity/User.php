@@ -7,6 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use App\Entity\ParentProfile; // <-- add this use
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
@@ -35,6 +36,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column]
     private bool $isVerified = false;
+
+
+    #[ORM\OneToOne(mappedBy: 'user', targetEntity: ParentProfile::class, cascade: ['persist','remove'])]
+private ?ParentProfile $parentProfile = null;
+
+
 
     public function getId(): ?int
     {
@@ -117,4 +124,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return $this;
     }
+
+
+    public function getParentProfile(): ?ParentProfile
+{
+    return $this->parentProfile;
+}
+
+public function setParentProfile(?ParentProfile $parentProfile): static
+{
+    $this->parentProfile = $parentProfile;
+
+    // keep the owning side in sync
+    if ($parentProfile && $parentProfile->getUser() !== $this) {
+        $parentProfile->setUser($this);
+    }
+
+    return $this;
+}
 }

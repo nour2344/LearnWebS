@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Bulletins de {{ etudiant.nom }} {{ etudiant.prenom }}{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+  <h3>Bulletins de {{ etudiant.nom }} {{ etudiant.prenom }}</h3>
+
+  {# If the controller passed "visible", show an info box when hidden #}
+  {% if visible is defined and not visible %}
+    <div class="alert alert-warning">
+      Les bulletins de cet étudiant ne sont pas disponibles pour le moment.
+    </div>
+  {% endif %}
+
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Matière</th>
+        <th>Note</th>
+        <th>Date</th>
+        <th>Semestre</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in bulletins %}
+        {# Safely resolve the date field whatever its actual name is #}
+        {% set dateVal =
+          (b.dateB is defined)       ? b.dateB :
+          (b.date is defined)        ? b.date :
+          (b.dateBulletin is defined)? b.dateBulletin :
+          (b.createdAt is defined)   ? b.createdAt :
+                                       null
+        %}
+
+        <tr>
+          <td>{{ b.matiere }}</td>
+          <td>{{ b.note }}</td>
+          <td>{{ dateVal ? dateVal|date('d/m/Y') : '' }}</td>
+          <td>{{ b.semestre }}</td>
+
+          <td class="text-center">
+            {% if visible is defined and visible %}
+              <a href="{{ path('parent_bulletin_show', { id: b.id }) }}"
+                 class="btn btn-sm btn-primary">
+                Ouvrir
+              </a>
+            {% else %}
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted">Aucun bulletin.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{# near your "Retour" button, for example #}
+<a class="btn btn-secondary"
+   href="{{ path('parent_bulletins_pdf', { id: etudiant.id }) }}">
+  ⬇️ Télécharger PDF
+</a>
+
+  <a href="{{ path('parent_bulletins') }}" class="btn btn-outline-secondary">⬅️ Retour</a>
+</div>
+{% endblock %}
