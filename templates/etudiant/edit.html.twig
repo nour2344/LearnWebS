@@ -26,6 +26,18 @@
         }
       }) }}
     </div>
+     <div class="row">
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.nomP) }}
+      {{ form_widget(form.nomP, {
+        attr: {
+          class: 'form-control',
+          required: true,
+          minlength: 2,
+          maxlength: 100
+        }
+      }) }}
+    </div>
 
     <div class="col-md-6 mb-3">
       {{ form_label(form.prenom) }}
@@ -106,7 +118,9 @@
       classe:          document.getElementById('etudiant_classe'),
       numTel:          document.getElementById('etudiant_numTel'),
       dateN:           document.getElementById('etudiant_dateN'),
-      dateInscription: document.getElementById('etudiant_dateInscription')
+      dateInscription: document.getElementById('etudiant_dateInscription'),
+            nomP:             document.getElementById('etudiant_nomP')
+
     };
 
     const today = new Date().toISOString().slice(0, 10);
@@ -134,6 +148,11 @@
     // Field-specific rules
     const validators = new Map([
       [el.nom, (v) => {
+        if (!v) return 'Le nom est obligatoire.';
+        if (v.length < 2) return 'Au moins 2 caractères.';
+        return '';
+      }],
+       [el.nomP, (v) => {
         if (!v) return 'Le nom est obligatoire.';
         if (v.length < 2) return 'Au moins 2 caractères.';
         return '';

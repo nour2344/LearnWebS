@@ -22,7 +22,6 @@
 <div class="container mt-5">
   <h1 class="mb-4 text-center">📋 Liste des Étudiants</h1>
 
-  {# Bandeaux (optionnels) #}
   {% if overdue is defined and overdue|length > 0 %}
     <div class="alert alert-danger" role="alert">
       ⚠️ {{ overdue|length }} étudiant(s) impayé(s) (mois courant) et en retard.
@@ -35,9 +34,9 @@
   {% endif %}
 
   <div class="mb-3 row">
-    <div class="col"><input type="text" id="f_nom" class="form-control" placeholder="Nom"></div>
-    <div class="col"><input type="text" id="f_prenom" class="form-control" placeholder="Prénom"></div>
-    <div class="col"><input type="text" id="f_classe" class="form-control" placeholder="Classe"></div>
+    <div class="col"><input type="text" id="f_nom" class="form-control" placeholder="Nom" autocomplete="off"></div>
+    <div class="col"><input type="text" id="f_prenom" class="form-control" placeholder="Prénom" autocomplete="off"></div>
+    <div class="col"><input type="text" id="f_classe" class="form-control" placeholder="Classe" autocomplete="off"></div>
   </div>
 
   <table class="table table-hover table-bordered shadow-sm">
@@ -49,6 +48,7 @@
         <th>🎂 Naissance</th>
         <th>📞 Téléphone</th>
         <th>📅 Inscription</th>
+
         <th>✔️ Statut</th>
         <th>⚙️ Actions</th>
       </tr>
@@ -76,8 +76,9 @@
 // Pour les liens construits côté client, on utilise un ID sentinelle numérique valide
 const SENTINEL = '2147483647';
 const routes = {
-  edit:     '{{ path("etudiant_edit",           {"id": 2147483647}) }}',
-  bulletin: '{{ path("bulletin_by_etudiant",    {"id": 2147483647}) }}'
+  fiche:    '{{ path("etudiant_fiche",       {"id": 2147483647}) }}',
+  edit:     '{{ path("etudiant_edit",        {"id": 2147483647}) }}',
+  bulletin: '{{ path("bulletin_by_etudiant", {"id": 2147483647}) }}'
 };
 function withId(urlTpl, id) { return urlTpl.replace(SENTINEL, String(id)); }
 
@@ -110,35 +111,42 @@ function withId(urlTpl, id) { return urlTpl.replace(SENTINEL, String(id)); }
           ? rows.map(r => rowHtml(r)).join('')
           : '<tr><td colspan="8" class="text-center">Aucun étudiant trouvé.</td></tr>';
         renderPager(page, pages);
+        attachRowClicks(); // important: clickable rows after refresh
       })
       .catch(console.error);
   }
 
-  function statusBadge(st) {
-    if (st && st.paidThisMonth) return '<span class="badge bg-success">Payé (mois courant)</span>';
-    if (st && st.overdueDays !== null && st.overdueDays !== undefined) return `<span class="badge bg-danger">En retard ${st.overdueDays} j</span>`;
-    if (st && st.dueInDays !== null && st.dueInDays !== undefined && st.dueInDays <= 7) return `<span class="badge bg-warning text-dark">Dans ${st.dueInDays} j</span>`;
-    return '<span class="badge bg-secondary">Non payé</span>';
+  // Switch "lecture seule" côté AJAX (pas de CSRF)
+  function statusSwitch(st) {
+    const checked = (st && st.paidThisMonth) ? 'checked' : '';
+    const label   = checked ? 'Payé' : 'Non payé';
+    return `
+      <div class="form-check form-switch d-inline-flex align-items-center gap-2 m-0">
+        <input class="form-check-input" type="checkbox" role="switch" ${checked} disabled>
+        <label class="form-check-label">${label}</label>
+      </div>
+    `;
   }
 
   function safeId(v){ const s = String(v ?? '').trim(); return /^\d+$/.test(s) ? s : null; }
 
-  // NB: on ne rend PAS les boutons POST (toggle paiement / toggle bulletins / delete) en JS
-  // car ils nécessitent des tokens CSRF par id. On garde ces actions dans le rendu serveur (_table_rows).
+  // Rendu client (sans formulaires POST)
   function rowHtml(r) {
     const sid = safeId(r.id);
+    const urlFiche    = sid ? withId(routes.fiche, sid)    : '#';
     const urlEdit     = sid ? withId(routes.edit, sid)     : '#';
     const urlBulletin = sid ? withId(routes.bulletin, sid) : '#';
 
     return `
-      <tr>
+      <tr class="row-click" data-href="${urlFiche}" style="cursor:pointer">
         <td>${r.nom ?? ''}</td>
         <td>${r.prenom ?? ''}</td>
         <td>${r.classe ?? ''}</td>
         <td>${r.dateN ?? ''}</td>
         <td>${r.numTel ?? ''}</td>
         <td>${r.dateInscription ?? ''}</td>
-        <td>${statusBadge(r.status)}</td>
+
+        <td>${statusSwitch(r.status)}</td>
         <td>
           <div class="d-flex justify-content-center gap-2">
             <a href="${urlEdit}" class="btn btn-sm btn-edit btn-icon"${sid ? '' : ' onclick="return false;"'}>✏️ Modifier</a>
@@ -163,6 +171,20 @@ function withId(urlTpl, id) { return urlTpl.replace(SENTINEL, String(id)); }
       btn.addEventListener('click', e => fetchPage(parseInt(e.currentTarget.dataset.p, 10)));
     });
   }
+
+  // Lignes cliquables (ignore clics sur boutons/inputs)
+  function attachRowClicks() {
+    document.querySelectorAll('tr.row-click').forEach(tr => {
+      tr.addEventListener('click', (e) => {
+        if (e.target.closest('a,button,input,select,textarea,form,[role="button"]')) return;
+        const href = tr.getAttribute('data-href');
+        if (href) window.location.href = href;
+      });
+    });
+  }
+
+  // activer pour le rendu initial
+  attachRowClicks();
 
   fNom.addEventListener('input', trigger);
   fPrenom.addEventListener('input', trigger);

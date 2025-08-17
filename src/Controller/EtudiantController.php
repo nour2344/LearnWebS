@@ -51,7 +51,7 @@ class EtudiantController extends AbstractController
             $qb->andWhere('e.classe LIKE :classe')->setParameter('classe', "%$classe%");
         }
 
-        $allowedSort = ['nom', 'prenom', 'classe', 'dateN', 'dateInscription'];
+        $allowedSort = ['nom', 'prenom', 'classe', 'dateN', 'dateInscription','nomP'];
         if (in_array($sort, $allowedSort, true)) {
             $qb->orderBy("e.$sort", $direction);
         } else {
@@ -96,6 +96,8 @@ class EtudiantController extends AbstractController
                     'numTel' => $e->getNumTel(),
                     'dateInscription' => $e->getDateInscription()?->format('d/m/Y'),
                     'status' => $status,
+                    'nomP' => $e->getNomP(),
+
                 ];
             }
 

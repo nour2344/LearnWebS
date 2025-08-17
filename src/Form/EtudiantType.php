@@ -30,6 +30,19 @@ class EtudiantType extends AbstractType
                     ]),
                 ],
             ])
+            ->add('nomP', TextType::class, [
+                'label' => 'Nom Parent',
+                'required' => true,
+                'constraints' => [
+                    new Assert\NotBlank(['message' => 'Le nom est obligatoire.']),
+                    new Assert\Length([
+                        'min' => 2,
+                        'max' => 100,
+                        'minMessage' => 'Le nom doit contenir au moins {{ limit }} caractères.',
+                        'maxMessage' => 'Le nom ne peut pas dépasser {{ limit }} caractères.',
+                    ]),
+                ],
+            ])
             ->add('prenom', TextType::class, [
                 'label' => 'Prénom',
                 'required' => true,

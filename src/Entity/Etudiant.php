@@ -64,6 +64,16 @@ private Collection $parents;
 
 #[ORM\Column(type: 'boolean')]
 private bool $bulletinsVisibles = false;
+
+#[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Le nom est obligatoire.')]
+    #[Assert\Length(min: 2, max: 100,
+        minMessage: 'Le nom doit contenir au moins {{ limit }} caractères.',
+        maxMessage: 'Le nom ne peut pas dépasser {{ limit }} caractères.'
+    )]
+    private ?string $nomP = null;
+
+
     // ---- Getters / Setters ----
 
     public function getId(): ?int
@@ -168,6 +178,17 @@ public function isBulletinsVisibles(): bool
 public function setBulletinsVisibles(bool $visible): self
 {
     $this->bulletinsVisibles = $visible;
+    return $this;
+}
+
+public function getNomP(): ?string
+{
+    return $this->nomP;
+}
+
+public function setNomP(string $nomP): self
+{
+    $this->nomP = $nomP;
     return $this;
 }
 }

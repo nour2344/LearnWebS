@@ -1,36 +1,85 @@
+{# templates/etudiant/_table_rows.html.twig #}
 {% set list = etudiants is defined ? etudiants : pagination %}
 
 {% for etudiant in list %}
-  <tr>
+  {# ---- 1) Statut payé ce mois : d'abord dernierPaiement, sinon dernier paiement de la liste ---- #}
+  {% set paidThisMonth = false %}
+
+  {# a) champ direct (cohérent avec le toggle du contrôleur) #}
+  {% if etudiant.dernierPaiement is defined and etudiant.dernierPaiement %}
+    {% set paidThisMonth = etudiant.dernierPaiement|date('Y-m') == 'now'|date('Y-m') %}
+  {% endif %}
+
+  {# b) fallback sur la collection de paiements #}
+  {% if not paidThisMonth and etudiant.paiements is defined and etudiant.paiements is not empty %}
+    {% set lastPay = null %}
+    {% for p in etudiant.paiements %}
+      {% if p.dateP is defined and p.dateP %}
+        {% if lastPay is null or p.dateP > lastPay %}
+          {% set lastPay = p.dateP %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+    {% set paidThisMonth = lastPay and lastPay|date('Y-m') == 'now'|date('Y-m') %}
+  {% endif %}
+
+  <tr class="row-click"
+      data-href="{{ path('etudiant_fiche', {'id': etudiant.id}) }}"
+      style="cursor:pointer">
     <td>{{ etudiant.nom }}</td>
     <td>{{ etudiant.prenom }}</td>
     <td>{{ etudiant.classe }}</td>
     <td>{{ etudiant.dateN ? etudiant.dateN|date('d/m/Y') }}</td>
     <td>{{ etudiant.numTel }}</td>
     <td>{{ etudiant.dateInscription ? etudiant.dateInscription|date('d/m/Y') }}</td>
+
+    {# ---- 2) Statut = switch (POST + CSRF), reste sur la ligne sans déclencher le clic de la <tr> ---- #}
     <td>
-      {# …votre badge de statut paiement… #}
+      <form method="post"
+            action="{{ path('etudiant_toggle_paiement', { id: etudiant.id }) }}"
+            onsubmit="event.stopPropagation();"
+            class="d-inline">
+        {# Doit matcher le contrôleur: csrf_token('toggle_etudiant_' ~ id) #}
+        <input type="hidden" name="_token" value="{{ csrf_token('toggle_etudiant_' ~ etudiant.id) }}">
+        <div class="form-check form-switch d-inline-flex align-items-center gap-2 m-0">
+          <input class="form-check-input" type="checkbox" role="switch"
+                 id="sw_{{ etudiant.id }}"
+                 {{ paidThisMonth ? 'checked' : '' }}
+                 onchange="event.stopPropagation(); this.form.submit();">
+          <label class="form-check-label" for="sw_{{ etudiant.id }}">
+            {{ paidThisMonth ? 'Payé' : 'Non payé' }}
+          </label>
+        </div>
+      </form>
     </td>
+
     <td>
       <div class="d-flex justify-content-center gap-2">
-        {# toggle bulletins visibility (POST + CSRF) #}
         <form method="post"
               action="{{ path('etudiant_toggle_bulletins', { id: etudiant.id }) }}"
               onsubmit="event.stopPropagation();">
           <input type="hidden" name="_token" value="{{ csrf_token('toggle_bulletins_' ~ etudiant.id) }}">
-          <button class="btn btn-sm {{ etudiant.bulletinsVisibles ? 'btn-danger' : 'btn-success' }}">
-            {{ etudiant.bulletinsVisibles ? 'Masquer bulletins' : 'Afficher bulletins' }}
+          <button class="btn btn-sm {{ etudiant.bulletinsVisibles is defined and etudiant.bulletinsVisibles ? 'btn-danger' : 'btn-success' }}"
+                  onclick="event.stopPropagation();">
+            {{ etudiant.bulletinsVisibles is defined and etudiant.bulletinsVisibles ? 'Masquer bulletins' : 'Afficher bulletins' }}
           </button>
         </form>
 
-        <a href="{{ path('etudiant_edit', {'id': etudiant.id}) }}" class="btn btn-sm btn-edit btn-icon" onclick="event.stopPropagation();">✏️ Modifier</a>
-        <form method="post" action="{{ path('etudiant_delete', {'id': etudiant.id}) }}"
-              onsubmit="return confirm('Confirmer la suppression ?');"
-              onclick="event.stopPropagation();">
+        <a href="{{ path('etudiant_edit', {'id': etudiant.id}) }}"
+           class="btn btn-sm btn-edit btn-icon"
+           onclick="event.stopPropagation();">✏️ Modifier</a>
+
+        <form method="post"
+              action="{{ path('etudiant_delete', {'id': etudiant.id}) }}"
+              onsubmit="event.stopPropagation(); return confirm('Confirmer la suppression ?');">
           <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ etudiant.id) }}">
-          <button class="btn btn-sm btn-delete btn-icon">🗑 Supprimer</button>
+          <button class="btn btn-sm btn-delete btn-icon"
+                  onclick="event.stopPropagation();">🗑 Supprimer</button>
         </form>
-        <a href="{{ path('bulletin_by_etudiant', {'id': etudiant.id}) }}" class="btn btn-warning" onclick="event.stopPropagation();">📄 Bulletin</a>
+
+        <a href="{{ path('bulletin_by_etudiant', {'id': etudiant.id}) }}"
+           class="btn btn-warning"
+           onclick="event.stopPropagation();">📄 Bulletin</a>
       </div>
     </td>
   </tr>
