@@ -5,9 +5,9 @@ namespace App\Form;
 use App\Entity\Etudiant;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
 
 class EtudiantType extends AbstractType
@@ -19,19 +19,6 @@ class EtudiantType extends AbstractType
         $builder
             ->add('nom', TextType::class, [
                 'label' => 'Nom',
-                'required' => true,
-                'constraints' => [
-                    new Assert\NotBlank(['message' => 'Le nom est obligatoire.']),
-                    new Assert\Length([
-                        'min' => 2,
-                        'max' => 100,
-                        'minMessage' => 'Le nom doit contenir au moins {{ limit }} caractères.',
-                        'maxMessage' => 'Le nom ne peut pas dépasser {{ limit }} caractères.',
-                    ]),
-                ],
-            ])
-            ->add('nomP', TextType::class, [
-                'label' => 'Nom Parent',
                 'required' => true,
                 'constraints' => [
                     new Assert\NotBlank(['message' => 'Le nom est obligatoire.']),
@@ -86,11 +73,11 @@ class EtudiantType extends AbstractType
                 'label' => 'Date d\'inscription',
                 'widget' => 'single_text',
                 'html5' => true,
-                'required' => true, // <-- required
-                'attr' => ['max' => $today], // client-side guard
+                'required' => true,
+                'attr' => ['max' => $today],
                 'invalid_message' => 'La date d\'inscription est invalide.',
                 'constraints' => [
-                    new Assert\NotBlank(['message' => 'La date d\'inscription est obligatoire.']), // <-- server-side guard
+                    new Assert\NotBlank(['message' => 'La date d\'inscription est obligatoire.']),
                     new Assert\LessThanOrEqual([
                         'value' => 'today',
                         'message' => 'La date d\'inscription ne peut pas être dans le futur.',
@@ -106,6 +93,61 @@ class EtudiantType extends AbstractType
                         'pattern' => '/^\d{8,15}$/',
                         'message' => 'Le numéro de téléphone doit contenir entre 8 et 15 chiffres.',
                     ]),
+                ],
+                'attr' => [
+                    'inputmode' => 'numeric',
+                    'pattern'   => '^\d{8,15}$',
+                    'placeholder' => 'Ex: 22334455',
+                ],
+            ])
+
+            // -------- Optionnels ----------
+            ->add('nomPere', TextType::class, [
+                'label' => 'Nom Père',
+                'required' => false,
+                'empty_data' => null,
+                'constraints' => [
+                    new Assert\Length([
+                        'min' => 2,
+                        'max' => 100,
+                        'minMessage' => 'Le nom doit contenir au moins {{ limit }} caractères.',
+                        'maxMessage' => 'Le nom ne peut pas dépasser {{ limit }} caractères.',
+                    ]),
+                ],
+                'attr' => [
+                    'placeholder' => 'Nom du père (optionnel)',
+                ],
+            ])
+            ->add('nomMere', TextType::class, [
+                'label' => 'Nom Mère',
+                'required' => false,
+                'empty_data' => null,
+                'constraints' => [
+                    new Assert\Length([
+                        'min' => 2,
+                        'max' => 100,
+                        'minMessage' => 'Le nom doit contenir au moins {{ limit }} caractères.',
+                        'maxMessage' => 'Le nom ne peut pas dépasser {{ limit }} caractères.',
+                    ]),
+                ],
+                'attr' => [
+                    'placeholder' => 'Nom de la mère (optionnel)',
+                ],
+            ])
+            ->add('numTel2', TextType::class, [
+                'label' => 'Numéro de téléphone supplémentaire',
+                'required' => false,
+                'empty_data' => null, // => évite d’appliquer la Regex sur une chaîne vide
+                'constraints' => [
+                    new Assert\Regex([
+                        'pattern' => '/^\d{8,15}$/',
+                        'message' => 'Le numéro de téléphone doit contenir entre 8 et 15 chiffres.',
+                    ]),
+                ],
+                'attr' => [
+                    'inputmode' => 'numeric',
+                    'pattern'   => '^\d{8,15}$',
+                    'placeholder' => 'Deuxième numéro (optionnel)',
                 ],
             ]);
     }

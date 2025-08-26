@@ -6,7 +6,7 @@
 {% block body %}
   <h2 class="text-warning mb-4">✏ Modifier étudiant</h2>
 
-  {# Give the form an id and disable native browser validation #}
+  {# Donne un id au form et désactive la validation native #}
   {{ form_start(form, {
     attr: {
       id: 'etudiant-edit-form',
@@ -25,18 +25,7 @@
           maxlength: 100
         }
       }) }}
-    </div>
-     <div class="row">
-    <div class="col-md-6 mb-3">
-      {{ form_label(form.nomP) }}
-      {{ form_widget(form.nomP, {
-        attr: {
-          class: 'form-control',
-          required: true,
-          minlength: 2,
-          maxlength: 100
-        }
-      }) }}
+      <div class="invalid-feedback"></div>
     </div>
 
     <div class="col-md-6 mb-3">
@@ -49,6 +38,7 @@
           maxlength: 100
         }
       }) }}
+      <div class="invalid-feedback"></div>
     </div>
 
     <div class="col-md-6 mb-3">
@@ -60,6 +50,7 @@
           maxlength: 50
         }
       }) }}
+      <div class="invalid-feedback"></div>
     </div>
 
     <div class="col-md-6 mb-3">
@@ -73,6 +64,22 @@
           title: 'Le numéro doit contenir entre 8 et 15 chiffres.'
         }
       }) }}
+      <div class="invalid-feedback"></div>
+    </div>
+
+    {# Numéro 2 (optionnel) #}
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.numTel2) }}
+      {{ form_widget(form.numTel2, {
+        attr: {
+          class: 'form-control',
+          inputmode: 'numeric',
+          pattern: '^\\d{8,15}$',
+          title: 'Le numéro doit contenir entre 8 et 15 chiffres.',
+          placeholder: 'Deuxième numéro (optionnel)'
+        }
+      }) }}
+      <div class="invalid-feedback"></div>
     </div>
 
     <div class="col-md-6 mb-3">
@@ -84,6 +91,7 @@
           max: ('now'|date('Y-m-d'))
         }
       }) }}
+      <div class="invalid-feedback"></div>
     </div>
 
     <div class="col-md-6 mb-3">
@@ -95,6 +103,34 @@
           max: ('now'|date('Y-m-d'))
         }
       }) }}
+      <div class="invalid-feedback"></div>
+    </div>
+
+    {# Parents (optionnels) #}
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.nomPere) }}
+      {{ form_widget(form.nomPere, {
+        attr: {
+          class: 'form-control',
+          minlength: 2,
+          maxlength: 100,
+          placeholder: 'Nom du père (optionnel)'
+        }
+      }) }}
+      <div class="invalid-feedback"></div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      {{ form_label(form.nomMere) }}
+      {{ form_widget(form.nomMere, {
+        attr: {
+          class: 'form-control',
+          minlength: 2,
+          maxlength: 100,
+          placeholder: 'Nom de la mère (optionnel)'
+        }
+      }) }}
+      <div class="invalid-feedback"></div>
     </div>
   </div>
 
@@ -105,22 +141,23 @@
 
   <hr>
 
-  {# ---- Client-side validation (touched-first) ---- #}
+  {# ---- Validation client (touched-first) ---- #}
   <script>
   (function () {
     const form = document.getElementById('etudiant-edit-form');
     if (!form) return;
 
-    // Symfony default ids when the form name is "etudiant"
+    // IDs par défaut générés par Symfony (form name = "etudiant")
     const el = {
       nom:             document.getElementById('etudiant_nom'),
       prenom:          document.getElementById('etudiant_prenom'),
       classe:          document.getElementById('etudiant_classe'),
       numTel:          document.getElementById('etudiant_numTel'),
+      numTel2:         document.getElementById('etudiant_numTel2'),
       dateN:           document.getElementById('etudiant_dateN'),
       dateInscription: document.getElementById('etudiant_dateInscription'),
-            nomP:             document.getElementById('etudiant_nomP')
-
+      nomPere:         document.getElementById('etudiant_nomPere'),
+      nomMere:         document.getElementById('etudiant_nomMere'),
     };
 
     const today = new Date().toISOString().slice(0, 10);
@@ -145,14 +182,9 @@
     }
     const isFuture = (d) => d && d > today;
 
-    // Field-specific rules
+    // Règles de validation
     const validators = new Map([
       [el.nom, (v) => {
-        if (!v) return 'Le nom est obligatoire.';
-        if (v.length < 2) return 'Au moins 2 caractères.';
-        return '';
-      }],
-       [el.nomP, (v) => {
         if (!v) return 'Le nom est obligatoire.';
         if (v.length < 2) return 'Au moins 2 caractères.';
         return '';
@@ -171,6 +203,12 @@
         if (!/^\d{8,15}$/.test(v)) return 'Le numéro doit contenir entre 8 et 15 chiffres.';
         return '';
       }],
+      // Optionnels: valider seulement si renseignés
+      [el.numTel2, (v) => {
+        if (!v) return '';
+        if (!/^\d{8,15}$/.test(v)) return 'Le numéro doit contenir entre 8 et 15 chiffres.';
+        return '';
+      }],
       [el.dateN, (v) => {
         if (!v) return 'La date de naissance est obligatoire.';
         if (isFuture(v)) return 'La date de naissance doit être antérieure à aujourd\'hui.';
@@ -180,7 +218,17 @@
         if (!v) return 'La date d\'inscription est obligatoire.';
         if (isFuture(v)) return 'La date d\'inscription ne peut pas être dans le futur.';
         return '';
-      }]
+      }],
+      [el.nomPere, (v) => {
+        if (!v) return '';
+        if (v.length < 2) return 'Au moins 2 caractères.';
+        return '';
+      }],
+      [el.nomMere, (v) => {
+        if (!v) return '';
+        if (v.length < 2) return 'Au moins 2 caractères.';
+        return '';
+      }],
     ]);
 
     function validateField(input) {
@@ -193,14 +241,14 @@
 
     function markTouched(input) { input.dataset.touched = '1'; }
 
-    // Validate only after the user interacted with that field
+    // Validation après interaction
     for (const input of inputs) {
       input.addEventListener('blur',  () => { markTouched(input); validateField(input); });
       input.addEventListener('change',() => { if (input.dataset.touched === '1') validateField(input); });
       input.addEventListener('input', () => { if (input.dataset.touched === '1') validateField(input); });
     }
 
-    // On submit: mark all as touched, validate all fields
+    // À la soumission : marquer tout comme touché + valider
     form.addEventListener('submit', (e) => {
       inputs.forEach(i => i.dataset.touched = '1');
       let ok = true;

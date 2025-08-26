@@ -70,5 +70,32 @@ public function searchByCriteria(?string $nom, ?string $prenom, ?string $classe)
             ->getSingleScalarResult();
     }
 
+public function getDistinctClasses(): array
+{
+    $rows = $this->createQueryBuilder('e')
+        ->select('DISTINCT e.classe AS c')
+        ->where('e.classe IS NOT NULL AND e.classe <> \'\'')
+        ->orderBy('e.classe', 'ASC')
+        ->getQuery()->getScalarResult();
 
+    // return flat array of strings
+    return array_map(static fn($r) => (string)$r['c'], $rows);
+}
+
+/**
+ * @return Etudiant[]
+ */
+public function suggestByClasseAndName(string $classe, string $q, int $limit = 12): array
+{
+    $qb = $this->createQueryBuilder('e')
+        ->andWhere('e.classe = :classe')
+        ->andWhere('(e.nom LIKE :q OR e.prenom LIKE :q)')
+        ->setParameter('classe', $classe)
+        ->setParameter('q', '%'.$q.'%')
+        ->orderBy('e.nom', 'ASC')
+        ->addOrderBy('e.prenom', 'ASC')
+        ->setMaxResults($limit);
+
+    return $qb->getQuery()->getResult();
+}
 }

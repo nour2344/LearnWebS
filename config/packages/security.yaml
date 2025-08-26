@@ -29,18 +29,26 @@ security:
         csrf_token_id: logout
 
   access_control:
-    # public first
-    - { path: ^/logout$, roles: PUBLIC_ACCESS }
-    - { path: ^/login$, roles: PUBLIC_ACCESS }
+    # --- PUBLIC API (autocomplete) — must come first ---
+    - { path: ^/etudiant/api/etudiants/suggest,  roles: PUBLIC_ACCESS }
+    - { path: ^/etudiant/api/etudiants/by-classe, roles: PUBLIC_ACCESS }
+
+    # --- Auth pages & registration flow ---
+    - { path: ^/login$,    roles: PUBLIC_ACCESS }
     - { path: ^/register$, roles: PUBLIC_ACCESS }
-    - { path: ^/verify/email$, roles: IS_AUTHENTICATED_FULLY }
+    # verification link can be public; the controller itself checks IS_AUTHENTICATED_FULLY
+    - { path: ^/verify/email$, roles: PUBLIC_ACCESS }
 
-    # parent area
-    - { path: ^/parent, roles: ROLE_PARENT }
+    # --- Public home page ---
+    - { path: ^/$, roles: PUBLIC_ACCESS }
 
-    # admin area
-    - { path: ^/admin, roles: ROLE_ADMIN }
+    # --- Protected areas ---
+    - { path: ^/parent,                             roles: ROLE_PARENT }
+    - { path: ^/admin,                              roles: ROLE_ADMIN }
     - { path: ^/(etudiant|paiement|personnel|salaire), roles: ROLE_ADMIN }
 
-    # real home page stays public
-    - { path: ^/$, roles: ROLE_ADMIN }
+    # --- Catch‑all: anything else requires login ---
+    - { path: ^/, roles: IS_AUTHENTICATED_FULLY }
+    - { path: ^/admin/emplois, roles: ROLE_ADMIN }
+  # Keep your public API open if you like (or protect it)
+    - { path: ^/admin/emplois/api, roles: PUBLIC_ACCESS }

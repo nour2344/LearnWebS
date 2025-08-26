@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+<h1>Emplois (grilles)</h1>
+<a class="btn btn-primary" href="{{ path('emplois_grille_new') }}">Nouvelle grille</a>
+<table class="table mt-3">
+  <tr><th>Classe</th><th>À partir du</th><th>Titre</th><th></th></tr>
+  {% for e in emplois %}
+    <tr>
+      <td>{{ e.classe }}</td>
+      <td>{{ e.effectiveFrom|date('Y-m-d') }}</td>
+      <td>{{ e.titre }}</td>
+      <td>
+        <a class="btn btn-sm btn-info" href="{{ path('emplois_lignes_index', {emploi:e.id}) }}">Gérer les lignes</a>
+        <a class="btn btn-sm btn-secondary" href="{{ path('emplois_grille_edit', {id:e.id}) }}">Modifier</a>
+        <form method="post" action="{{ path('emplois_grille_delete',{id:e.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer ?')">
+          <input type="hidden" name="_token" value="{{ csrf_token('del_grille_' ~ e.id) }}">
+          <button class="btn btn-sm btn-danger">Supprimer</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+</table>
+{% endblock %}

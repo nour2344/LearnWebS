@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Emploi — {{ child.nom }} {{ child.prenom }}{% endblock %}
+
+{% block body %}
+<style>
+  .day-card   { border:1px solid #e5e7eb; border-radius:.75rem; padding:1rem; margin-bottom:1rem; background:#fff; }
+  .day-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem; }
+  .slot       { display:flex; align-items:center; justify-content:space-between; padding:.5rem .75rem; border:1px solid #f1f5f9; border-radius:.5rem; background:#fafafa; }
+  .slot + .slot { margin-top:.5rem; }
+  .slot-time  { font-weight:600; min-width:6.5rem; }
+  .empty      { color:#64748b; font-style:italic; }
+</style>
+
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="m-0">Emploi — {{ child.nom }} {{ child.prenom }}</h2>
+      {% if emploi %}
+        <div class="text-muted">
+          Classe {{ emploi.classe }}
+          — applicable dès {{ emploi.effectiveFrom|date('Y-m-d') }}
+          {% if emploi.titre %} — {{ emploi.titre }}{% endif %}
+          {% if upcoming is defined and upcoming %}<span class="badge bg-warning ms-2">À venir</span>{% endif %}
+        </div>
+      {% else %}
+        <div class="text-muted">Aucun emploi du temps publié.</div>
+      {% endif %}
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{{ path('parent_home') }}">← Retour</a>
+      {% if emploi %}
+        <a class="btn btn-primary" href="{{ path('parent_emplois_pdf', { child: child.id }) }}" target="_blank">
+          Télécharger PDF
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if not emploi %}
+    <div class="alert alert-info">Aucun emploi du temps n’a été publié pour cette classe.</div>
+  {% else %}
+    <div class="row">
+      {# days is a map like { 'Mon':'Lundi', ... } passed from the controller #}
+      {% for code, label in days %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="day-card">
+            <div class="day-header">
+              <h5 class="m-0">{{ label }}</h5>
+            </div>
+
+            {# list the slots for this day #}
+            {% set any = false %}
+            {% for l in lignes %}
+              {% if l.day == code %}
+                {% set any = true %}
+                <div class="slot">
+                  <div class="slot-time">{{ l.startAt|date('H:i') }}–{{ l.endAt|date('H:i') }}</div>
+                  <div class="flex-fill ms-3">{{ l.matiere }}</div>
+                </div>
+              {% endif %}
+            {% endfor %}
+
+            {% if not any %}
+              <div class="empty">Aucun créneau.</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,117 @@
+<div id="manual-box" class="mt-3" style="display:none">
+  <h5 class="mb-3">Composer en ligne</h5>
+
+  {# We still need the collection widget to get the prototype (hidden) #}
+  <div id="lines-collection" class="d-none">
+    {{ form_widget(form.lignes) }}
+  </div>
+
+  {% set days = {
+    'Mon':'Lundi', 'Tue':'Mardi', 'Wed':'Mercredi',
+    'Thu':'Jeudi', 'Fri':'Vendredi', 'Sat':'Samedi', 'Sun':'Dimanche'
+  } %}
+
+  {% for code,label in days %}
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>{{ label }}</strong>
+        <button type="button" class="btn btn-sm btn-outline-primary add-slot" data-day="{{ code }}">
+          + Ajouter un créneau
+        </button>
+      </div>
+      <div class="card-body p-2">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th style="width:160px">Début</th>
+                <th style="width:160px">Fin</th>
+                <th>Matière</th>
+                <th style="width:110px"></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-{{ code }}"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+  <small class="text-muted">Ajoutez une ligne par cours (jour, heure début/fin, matière).</small>
+</div>
+
+<script>
+(function(){
+  const modeRadios = document.querySelectorAll('input[name="{{ form.mode.vars.full_name }}"]');
+  const uploadBox  = document.getElementById('upload-box');
+  const manualBox  = document.getElementById('manual-box');
+  const linesWrap  = document.getElementById('lines-collection'); // hidden collection
+  const protoHtml  = linesWrap?.dataset.prototype || '';
+  let   index      = Number(linesWrap?.dataset.index || 0);
+
+  function syncMode(){
+    const val = [...modeRadios].find(r => r.checked)?.value || 'upload';
+    uploadBox.style.display = (val === 'upload') ? '' : 'none';
+    manualBox.style.display = (val === 'manual') ? '' : 'none';
+  }
+  modeRadios.forEach(r => r.addEventListener('change', syncMode));
+  syncMode();
+
+  // create a row for a given day from the form prototype
+  function addRow(dayCode) {
+    if (!protoHtml) return;
+
+    // Replace __name__ with unique index
+    const html = protoHtml.replace(/__name__/g, index++);
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+
+    // set hidden day value
+    const dayInput = temp.querySelector('.day-field');
+    if (dayInput) dayInput.value = dayCode;
+
+    // grab fields
+    const startEl  = temp.querySelector('input[type="time"][name*="[startAt]"]');
+    const endEl    = temp.querySelector('input[type="time"][name*="[endAt]"]');
+    const matEl    = temp.querySelector('input[type="text"][name*="[matiere]"]');
+
+    // Build table row containing those inputs and also keep the hidden day input in the row
+    const tr = document.createElement('tr');
+    tr.appendChild(tdWrap(startEl));
+    tr.appendChild(tdWrap(endEl));
+    tr.appendChild(tdWrap(matEl));
+
+    const actions = document.createElement('td');
+    const delBtn  = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'btn btn-sm btn-outline-danger';
+    delBtn.textContent = 'Supprimer';
+    delBtn.addEventListener('click', () => tr.remove());
+    actions.appendChild(delBtn);
+    tr.appendChild(actions);
+
+    // keep the hidden day input inside the row so it is posted
+    const hiddenCell = document.createElement('td');
+    hiddenCell.style.display = 'none';
+    hiddenCell.appendChild(dayInput);
+    tr.appendChild(hiddenCell);
+
+    const tbody = document.getElementById('tbody-' + dayCode);
+    tbody.appendChild(tr);
+  }
+
+  function tdWrap(el){
+    const td = document.createElement('td');
+    td.appendChild(el);
+    return td;
+  }
+
+  // handle click on "+ Ajouter un créneau"
+  document.querySelectorAll('.add-slot').forEach(btn => {
+    btn.addEventListener('click', () => addRow(btn.dataset.day));
+  });
+
+  // Optional: pre-create three empty rows for Monday as in your screenshot
+  // ['Mon','Mon','Mon'].forEach(addRow);
+})();
+</script>

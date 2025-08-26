@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+{% block title %}Modifier un créneau{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+  <div class="card shadow-sm p-4">
+    <h1 class="mb-4">✏️ Modifier un créneau</h1>
+
+    {{ form_start(form) }}
+
+      {# Day locked: show only as read-only #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Jour</label>
+        <input type="text" class="form-control" value="{{ dayLabel }}" disabled>
+        <input type="hidden" name="{{ form.day.vars.full_name }}" value="{{ dayCode }}">
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          {{ form_label(form.startAt, 'Début', {'label_attr': {'class':'form-label fw-semibold'}}) }}
+          {{ form_widget(form.startAt, {'attr': {'class': 'form-control'}}) }}
+        </div>
+        <div class="col-md-6 mb-3">
+          {{ form_label(form.endAt, 'Fin', {'label_attr': {'class':'form-label fw-semibold'}}) }}
+          {{ form_widget(form.endAt, {'attr': {'class': 'form-control'}}) }}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        {{ form_label(form.matiere, 'Matière', {'label_attr': {'class':'form-label fw-semibold'}}) }}
+        {{ form_widget(form.matiere, {'attr': {'class': 'form-control'}}) }}
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        <a class="btn btn-outline-secondary" href="{{ path('emplois_lignes_index', { emploi: emploi.id }) }}">Annuler</a>
+        <button class="btn btn-success">💾 Enregistrer</button>
+      </div>
+
+    {{ form_end(form, {'render_rest': false}) }}
+  </div>
+</div>
+{% endblock %}

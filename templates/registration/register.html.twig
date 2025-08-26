@@ -1,13 +1,38 @@
+{# templates/registration/register.html.twig #}
 {% extends 'base.html.twig' %}
 
 {% block title %}Créer un compte{% endblock %}
 
 {% block body %}
+<style>
+  .reg-wrap { max-width: 980px; margin: 0 auto; }
+  .reg-title { font-weight: 800; letter-spacing: .3px; }
+  .reg-card { border: 0; border-radius: 16px; box-shadow: 0 8px 22px rgba(0,0,0,.06); }
+  .form-label { font-weight: 600; }
+  .divider { height: 1px; background: #eef0f2; margin: 1rem 0 1.25rem; }
+  .nav-tabs .nav-link { border: 0; color: #6b7280; font-weight: 600; }
+  .nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; }
+  .btn-xl { padding: .85rem 1.25rem; font-weight: 700; border-radius: 12px; }
+
+  /* Dropdown autocomplétion */
+  .autocomplete-wrap { position: relative; }
+  #childList { max-height: 260px; overflow-y: auto; z-index: 20; }
+</style>
+
+<div class="reg-wrap mt-5 mb-5">
   {% for m in app.flashes('success') %}
-    <div class="alert alert-success">{{ m }}</div>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      {{ m }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
   {% endfor %}
 
-  <ul class="nav nav-tabs mb-3" role="tablist">
+  <div class="text-center mb-3">
+    <div style="font-size:44px">📝</div>
+    <h1 class="reg-title mt-2">Créer un compte</h1>
+  </div>
+
+  <ul class="nav nav-tabs justify-content-center mb-4" role="tablist">
     <li class="nav-item" role="presentation">
       <button class="nav-link active" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staff"
               type="button" role="tab" aria-controls="staff" aria-selected="true">
@@ -23,34 +48,211 @@
   </ul>
 
   <div class="tab-content">
+
+    {# ====================== STAFF ====================== #}
     <div class="tab-pane fade show active" id="staff" role="tabpanel" aria-labelledby="staff-tab">
-      {{ form_start(registrationForm) }}
-        {{ form_row(registrationForm.email) }}
-        {{ form_row(registrationForm.plainPassword, { label: 'Mot de passe' }) }}
-        {{ form_row(registrationForm.agreeTerms) }}
-        <button class="btn btn-primary" name="register_staff">Créer le compte staff</button>
-      {{ form_end(registrationForm) }}
-    </div>
+      <div class="card reg-card p-4 p-md-5">
+        {{ form_start(registrationForm) }}
 
-    <div class="tab-pane fade" id="parent" role="tabpanel" aria-labelledby="parent-tab">
-      {{ form_start(parentForm) }}
-        <div class="card p-3">
-          <h5 class="mb-2">Informations du parent</h5>
-          {{ form_row(parentForm.fullName) }}
-          {{ form_row(parentForm.phone) }}
-
-          <h5 class="mt-3 mb-2">Enfant</h5>
-          {{ form_row(parentForm.child) }}
-
-          <h5 class="mt-3 mb-2">Connexion</h5>
-          {{ form_row(parentForm.email) }}
-          {{ form_row(parentForm.plainPassword) }}
-
-          <div class="mt-3">
-            <button class="btn btn-success" name="register_parent">Créer le compte parent</button>
+        <div class="row g-4">
+          <div class="col-md-6">
+            {{ form_label(registrationForm.email, 'Email', {'label_attr': {'class':'form-label'}}) }}
+            {{ form_widget(registrationForm.email, {'attr': {'class': 'form-control', 'placeholder': 'ex. staff@ecole.tn' }}) }}
+          </div>
+          <div class="col-md-6">
+            {{ form_label(registrationForm.plainPassword, 'Mot de passe', {'label_attr': {'class':'form-label'}}) }}
+            <div class="input-group">
+              {{ form_widget(registrationForm.plainPassword, {'attr': {'class': 'form-control', 'placeholder': 'Au moins 8 caractères', 'id':'staff_pwd'}}) }}
+              <button class="btn btn-outline-secondary" type="button" id="toggleStaffPwd" aria-label="Afficher/Cacher">👁</button>
+            </div>
           </div>
         </div>
-      {{ form_end(parentForm) }}
+
+        <div class="form-check mt-3">
+          {{ form_widget(registrationForm.agreeTerms, {'attr': {'class':'form-check-input', 'id':'agree_staff'}}) }}
+          <label class="form-check-label" for="agree_staff">J’accepte les conditions d’utilisation.</label>
+        </div>
+
+        <div class="mt-4 d-grid">
+          <button class="btn btn-primary btn-xl" name="register_staff">Créer le compte staff</button>
+        </div>
+
+        {{ form_end(registrationForm) }}
+      </div>
     </div>
+
+    {# ====================== PARENT ====================== #}
+    <div class="tab-pane fade" id="parent" role="tabpanel" aria-labelledby="parent-tab">
+      <div class="card reg-card p-4 p-md-5">
+        {{ form_start(parentForm) }}
+
+        <h5 class="mb-3">Informations du parent</h5>
+        <div class="row g-4">
+          <div class="col-md-6">
+            {{ form_label(parentForm.fullName, 'Votre nom complet', {'label_attr': {'class':'form-label'}}) }}
+            {{ form_widget(parentForm.fullName, {'attr': {'class': 'form-control', 'placeholder': 'ex. Amel Ben Ali'}}) }}
+          </div>
+          <div class="col-md-6">
+            {{ form_label(parentForm.phone, 'Téléphone', {'label_attr': {'class':'form-label'}}) }}
+            {{ form_widget(parentForm.phone, {'attr': {'class': 'form-control', 'placeholder': 'ex. 22123456'}}) }}
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h5 class="mb-3">Enfant</h5>
+        <div class="row g-4 align-items-end">
+          <div class="col-md-4">
+            <label for="classeSelect" class="form-label">Classe</label>
+            <select id="classeSelect" class="form-select">
+              <option value="">— choisir une classe —</option>
+              {% for c in classes %}
+                <option value="{{ c }}">{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-8 autocomplete-wrap">
+            <label for="childInput" class="form-label">Votre enfant</label>
+            <input id="childInput" class="form-control" placeholder="Tapez le nom de votre enfant" disabled>
+            <div id="childList" class="list-group position-absolute w-100"></div>
+            <div class="form-text">Cherchez puis cliquez pour sélectionner votre enfant dans la classe choisie.</div>
+          </div>
+        </div>
+
+        {# Champ lié à l'EntityType (parentForm.child) — on le remplit via JS #}
+        <div class="d-none">
+  {{ form_widget(parentForm.child, {'attr': {'id': 'parent_child_hidden'}}) }}
+</div>
+
+
+        <div class="divider"></div>
+
+        <h5 class="mb-3">Connexion</h5>
+        <div class="row g-4">
+          <div class="col-md-6">
+            {{ form_label(parentForm.email, 'Email', {'label_attr': {'class':'form-label'}}) }}
+            {{ form_widget(parentForm.email, {'attr': {'class': 'form-control', 'placeholder': 'ex. parent@domaine.tn'}}) }}
+          </div>
+          <div class="col-md-6">
+            {{ form_label(parentForm.plainPassword, 'Mot de passe', {'label_attr': {'class':'form-label'}}) }}
+            <div class="input-group">
+              {{ form_widget(parentForm.plainPassword, {'attr': {'class': 'form-control', 'placeholder': 'Au moins 8 caractères', 'id':'parent_pwd'}}) }}
+              <button class="btn btn-outline-secondary" type="button" id="toggleParentPwd" aria-label="Afficher/Cacher">👁</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 d-grid">
+          <button class="btn btn-success btn-xl" name="register_parent">Créer le compte parent</button>
+        </div>
+
+        {{ form_end(parentForm) }}
+      </div>
+    </div>
+
   </div>
+</div>
+
+<script>
+(function () {
+  /* ===== Afficher/Cacher les mots de passe ===== */
+  function bindToggle(btnId, inputId) {
+    const btn = document.getElementById(btnId);
+    const inp = document.getElementById(inputId);
+    if (!btn || !inp) return;
+    btn.addEventListener('click', () => { inp.type = (inp.type === 'password') ? 'text' : 'password'; });
+  }
+  bindToggle('toggleStaffPwd', 'staff_pwd');
+  bindToggle('toggleParentPwd', 'parent_pwd');
+
+  /* ===== Classe → saisie + autocomplétion enfant ===== */
+  const classeSelect = document.getElementById('classeSelect');
+  const childInput   = document.getElementById('childInput');
+  const childList    = document.getElementById('childList');
+  const hiddenChild  = document.getElementById('parent_child_hidden'); // may be null if field missing/renamed
+
+  function resetChildInput(disable = true) {
+    if (childInput) {
+      childInput.value = '';
+      childInput.disabled = disable;
+    }
+    if (hiddenChild) hiddenChild.value = '';
+    if (childList) childList.innerHTML = '';
+  }
+
+  // Activer/désactiver l'input selon la classe
+  if (classeSelect) {
+    classeSelect.addEventListener('change', () => {
+      resetChildInput(!classeSelect.value);
+    });
+  }
+
+  // Fermer la liste si on clique ailleurs
+  document.addEventListener('click', (e) => {
+    if (!childList) return;
+    const inside = (e.target === childInput) || childList.contains(e.target);
+    if (!inside) childList.innerHTML = '';
+  });
+
+  // Autocomplétion côté serveur (min 2 lettres)
+  let lastController = null;
+  if (childInput) {
+    childInput.addEventListener('input', async () => {
+      const classe = classeSelect?.value;
+      const q = childInput.value.trim();
+
+      // Safety reset
+      if (!classe || q.length < 2) {
+        if (childList) childList.innerHTML = '';
+        if (hiddenChild) hiddenChild.value = '';
+        return;
+      }
+
+      if (lastController) lastController.abort();
+      lastController = new AbortController();
+
+      try {
+        const url = '{{ path("etudiant_suggest") }}' + '?' + new URLSearchParams({ classe, q });
+        const resp = await fetch(url, {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          signal: lastController.signal,
+          redirect: 'follow'
+        });
+
+        // If the server redirected us to /login (not public), bail out gracefully
+        if (!resp.ok || resp.headers.get('content-type')?.includes('text/html')) {
+          if (childList) childList.innerHTML = '';
+          return;
+        }
+
+        const data = await resp.json();
+
+        if (!Array.isArray(data) || !childList) return;
+        childList.innerHTML = '';
+        if (data.length === 0) return;
+
+        data.forEach(s => {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'list-group-item list-group-item-action';
+          item.textContent = `${s.nom} ${s.prenom}`;
+          item.onclick = () => {
+            if (childInput) childInput.value = `${s.nom} ${s.prenom}`;
+            if (hiddenChild) hiddenChild.value = s.id;  // guard: only if exists
+            childList.innerHTML = '';
+          };
+          childList.appendChild(item);
+        });
+      } catch (_) {
+        // silencieux
+      }
+    });
+  }
+
+  // État initial
+  resetChildInput(true);
+})();
+</script>
+
 {% endblock %}

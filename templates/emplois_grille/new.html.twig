@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle grille{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+  <div class="card shadow-sm p-4">
+    <h1 class="mb-4">➕ Nouvelle grille <small class="text-muted">(composer en ligne)</small></h1>
+
+    {{ form_start(form) }}
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          {{ form_label(form.classe, 'Classe', {'label_attr': {'class': 'form-label fw-bold'}}) }}
+          {{ form_widget(form.classe, {'attr': {'class': 'form-control'}}) }}
+        </div>
+        <div class="col-md-6 mb-3">
+          {{ form_label(form.titre, 'Titre (optionnel)', {'label_attr': {'class': 'form-label fw-bold'}}) }}
+          {{ form_widget(form.titre, {'attr': {'class': 'form-control'}}) }}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        {{ form_label(form.effectiveFrom, 'Applicable à partir du', {'label_attr': {'class': 'form-label fw-bold'}}) }}
+        {{ form_widget(form.effectiveFrom, {'attr': {'class': 'form-control'}}) }}
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        <a class="btn btn-outline-secondary" href="{{ path('emplois_grille_index') }}">Annuler</a>
+        <button class="btn btn-success">💾 Enregistrer</button>
+      </div>
+    {{ form_end(form) }}
+  </div>
+</div>
+{% endblock %}

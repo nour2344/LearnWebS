@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+{% block title %}Ajouter un créneau{% endblock %}
+
+{% block body %}
+<style>
+  .panel { border:1px solid #e5e7eb; border-radius:.75rem; background:#fff; }
+  .panel .panel-body { padding:1.25rem; }
+  .badge-day { font-size:.85rem; padding:.35rem .6rem; border-radius:999px; background:#eef2ff; color:#3730a3; }
+</style>
+
+<div class="container py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h3 m-0">
+      Ajouter un créneau
+      {% if lockedDay %}
+        <small class="badge-day ms-2">{{ dayLabel }}</small>
+      {% endif %}
+    </h1>
+    <a class="btn btn-outline-secondary" href="{{ path('emplois_lignes_index', {emploi: emploi.id}) }}">← Retour</a>
+  </div>
+
+  <div class="panel shadow-sm">
+    <div class="panel-body">
+      {{ form_start(form) }}
+
+        {# If day is locked, show disabled field for clarity AND submit a hidden value #}
+        {% if lockedDay %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Jour</label>
+            <input type="text" class="form-control" value="{{ dayLabel }}" disabled>
+            {# hidden field to actually submit the locked day value #}
+            <input type="hidden" name="{{ form.day.vars.full_name }}" value="{{ dayCode }}">
+          </div>
+        {% else %}
+          <div class="mb-3">
+            {{ form_label(form.day, 'Jour', {'label_attr': {'class': 'form-label fw-semibold'}}) }}
+            {{ form_widget(form.day, {'attr': {'class': 'form-select'}}) }}
+            {{ form_errors(form.day) }}
+          </div>
+        {% endif %}
+
+        <div class="row g-3">
+          <div class="col-sm-6">
+            {{ form_label(form.startAt, 'Début', {'label_attr': {'class': 'form-label fw-semibold'}}) }}
+            {{ form_widget(form.startAt, {'attr': {'class': 'form-control'}}) }}
+            {{ form_errors(form.startAt) }}
+          </div>
+          <div class="col-sm-6">
+            {{ form_label(form.endAt, 'Fin', {'label_attr': {'class': 'form-label fw-semibold'}}) }}
+            {{ form_widget(form.endAt, {'attr': {'class': 'form-control'}}) }}
+            {{ form_errors(form.endAt) }}
+          </div>
+        </div>
+
+        <div class="mt-3">
+          {{ form_label(form.matiere, 'Matière', {'label_attr': {'class': 'form-label fw-semibold'}}) }}
+          {{ form_widget(form.matiere, {'attr': {'class': 'form-control', 'placeholder':'Maths, Physique…'}}) }}
+          {{ form_errors(form.matiere) }}
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <a class="btn btn-outline-secondary" href="{{ path('emplois_lignes_index', {emploi: emploi.id}) }}">Annuler</a>
+          <button class="btn btn-success">Enregistrer</button>
+        </div>
+
+      {{ form_end(form) }}
+    </div>
+  </div>
+</div>
+{% endblock %}

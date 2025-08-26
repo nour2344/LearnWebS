@@ -1,3 +1,4 @@
+{# templates/etudiant/index.html.twig #}
 {% extends 'base_module.html.twig' %}
 
 {% block title %}Liste des Étudiants{% endblock %}
@@ -15,6 +16,8 @@
   .btn-edit:hover { background-color: #1976d2; }
   .btn-delete { background-color: #f44336; color: white; }
   .btn-delete:hover { background-color: #c62828; }
+  .bulk-actions .btn { min-width: 210px; }
+  @media (max-width: 992px) { .bulk-actions { margin-top: 8px; gap: 8px; } }
   .container { animation: fadeIn 0.3s ease-in-out; }
   @keyframes fadeIn { from { opacity:0; transform: translateY(10px);} to { opacity:1; transform: translateY(0);} }
 </style>
@@ -33,7 +36,7 @@
     </div>
   {% endif %}
 
-  <div class="mb-3 row">
+  <div class="mb-3 row align-items-end">
     <div class="col"><input type="text" id="f_nom" class="form-control" placeholder="Nom" autocomplete="off"></div>
     <div class="col"><input type="text" id="f_prenom" class="form-control" placeholder="Prénom" autocomplete="off"></div>
     <div class="col"><input type="text" id="f_classe" class="form-control" placeholder="Classe" autocomplete="off"></div>
@@ -48,14 +51,12 @@
         <th>🎂 Naissance</th>
         <th>📞 Téléphone</th>
         <th>📅 Inscription</th>
-
         <th>✔️ Statut</th>
         <th>⚙️ Actions</th>
       </tr>
     </thead>
 
     <tbody id="etudiants_table_body">
-      {# rendu serveur initial (tokens CSRF OK) #}
       {% include 'etudiant/_table_rows.html.twig' with { 'etudiants': pagination } %}
     </tbody>
   </table>
@@ -73,21 +74,31 @@
 </div>
 
 <script>
-// Pour les liens construits côté client, on utilise un ID sentinelle numérique valide
+/* ---------- Routes helpers ---------- */
 const SENTINEL = '2147483647';
 const routes = {
-  fiche:    '{{ path("etudiant_fiche",       {"id": 2147483647}) }}',
-  edit:     '{{ path("etudiant_edit",        {"id": 2147483647}) }}',
-  bulletin: '{{ path("bulletin_by_etudiant", {"id": 2147483647}) }}'
+  fiche:           '{{ path("etudiant_fiche",           {"id": 2147483647}) }}',
+  edit:            '{{ path("etudiant_edit",            {"id": 2147483647}) }}',
+  bulletin:        '{{ path("bulletin_by_etudiant",     {"id": 2147483647}) }}',
+  toggleBulletins: '{{ path("etudiant_toggle_bulletins",{"id": 2147483647}) }}',
+  togglePaiement:  '{{ path("etudiant_toggle_paiement", {"id": 2147483647}) }}',
+  bulkBulletins:   '{{ path("etudiant_bulk_bulletins") }}'
 };
 function withId(urlTpl, id) { return urlTpl.replace(SENTINEL, String(id)); }
 
+/* ---------- Page logic ---------- */
 (function () {
   const fNom    = document.getElementById('f_nom');
   const fPrenom = document.getElementById('f_prenom');
   const fClasse = document.getElementById('f_classe');
   const tbody   = document.getElementById('etudiants_table_body');
   const pager   = document.getElementById('students_pager');
+
+  // These buttons are OPTIONAL in the UI. Guard their usage.
+  const btnShow = document.getElementById('btn-show-all');
+  const btnHide = document.getElementById('btn-hide-all');
+
+  const CSRF_BULK = '{{ csrf_token("bulk_bulletins") }}';
 
   let t, currentPage = 1;
 
@@ -105,37 +116,77 @@ function withId(urlTpl, id) { return urlTpl.replace(SENTINEL, String(id)); }
     fetch('{{ path("etudiant_index") }}?' + params.toString(), {
       headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
-      .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-      .then(({ rows, page, pages }) => {
-        tbody.innerHTML = (rows && rows.length)
-          ? rows.map(r => rowHtml(r)).join('')
-          : '<tr><td colspan="8" class="text-center">Aucun étudiant trouvé.</td></tr>';
-        renderPager(page, pages);
-        attachRowClicks(); // important: clickable rows after refresh
-      })
-      .catch(console.error);
+    .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(({ rows, page, pages }) => {
+      tbody.innerHTML = (rows && rows.length)
+        ? rows.map(r => rowHtml(r)).join('')
+        : '<tr><td colspan="8" class="text-center">Aucun étudiant trouvé.</td></tr>';
+
+      renderPager(page, pages);
+      attachRowClicks();
+      attachAjaxButtons();   // bulletins per-row
+      attachAjaxPayment();   // payment per-row
+      setBulkEnabled(rows && rows.length > 0);
+    })
+    .catch(console.error);
   }
 
-  // Switch "lecture seule" côté AJAX (pas de CSRF)
-  function statusSwitch(st) {
-    const checked = (st && st.paidThisMonth) ? 'checked' : '';
-    const label   = checked ? 'Payé' : 'Non payé';
+  function setBulkEnabled(enabled) {
+    if (btnShow) btnShow.disabled = !enabled;
+    if (btnHide) btnHide.disabled = !enabled;
+  }
+
+  // Bulk show/hide (only if the buttons exist)
+  async function bulkToggle(visible) {
+    if (!btnShow && !btnHide) return; // nothing to do if buttons not present
+    const body = new URLSearchParams({
+      _token: CSRF_BULK,
+      visible: visible ? '1' : '0',
+      nom: fNom.value || '',
+      prenom: fPrenom.value || '',
+      classe: fClasse.value || ''
+    });
+    const resp = await fetch(routes.bulkBulletins, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body
+    });
+    if (!resp.ok) { console.error('bulk error', resp.status); return; }
+    fetchPage(currentPage);
+  }
+
+  if (btnShow) btnShow.addEventListener('click', () => bulkToggle(true));
+  if (btnHide) btnHide.addEventListener('click', () => bulkToggle(false));
+
+  /* ---------- Row rendering ---------- */
+  function safeId(v){ const s = String(v ?? '').trim(); return /^\d+$/.test(s) ? s : null; }
+
+  function paymentSwitch(r) {
+    const checked  = (r.status && r.status.paidThisMonth) ? 'checked' : '';
+    const disabled = (!r.csrf_toggle_paiement || !r.id) ? 'disabled' : '';
+    const labelTxt = checked ? 'Payé' : 'Non payé';
     return `
       <div class="form-check form-switch d-inline-flex align-items-center gap-2 m-0">
-        <input class="form-check-input" type="checkbox" role="switch" ${checked} disabled>
-        <label class="form-check-label">${label}</label>
+        <input class="form-check-input sw-pay" type="checkbox" role="switch"
+               ${checked} ${disabled}
+               data-id="${r.id ?? ''}"
+               data-csrf="${r.csrf_toggle_paiement ?? ''}">
+        <label class="form-check-label">${labelTxt}</label>
       </div>
     `;
   }
 
-  function safeId(v){ const s = String(v ?? '').trim(); return /^\d+$/.test(s) ? s : null; }
-
-  // Rendu client (sans formulaires POST)
   function rowHtml(r) {
     const sid = safeId(r.id);
     const urlFiche    = sid ? withId(routes.fiche, sid)    : '#';
     const urlEdit     = sid ? withId(routes.edit, sid)     : '#';
     const urlBulletin = sid ? withId(routes.bulletin, sid) : '#';
+
+    const btnLabel = r.bulletinsVisibles ? 'Masquer bulletins' : 'Afficher bulletins';
+    const btnClass = r.bulletinsVisibles ? 'btn-danger' : 'btn-success';
 
     return `
       <tr class="row-click" data-href="${urlFiche}" style="cursor:pointer">
@@ -146,9 +197,19 @@ function withId(urlTpl, id) { return urlTpl.replace(SENTINEL, String(id)); }
         <td>${r.numTel ?? ''}</td>
         <td>${r.dateInscription ?? ''}</td>
 
-        <td>${statusSwitch(r.status)}</td>
+        <td>${paymentSwitch(r)}</td>
+
         <td>
           <div class="d-flex justify-content-center gap-2">
+            <button
+              class="btn btn-sm ${btnClass} btn-toggle-bulletins"
+              data-id="${sid ?? ''}"
+              data-csrf="${r.csrf_toggle_bulletins ?? ''}"
+              type="button"
+              ${(!sid || !r.csrf_toggle_bulletins) ? 'disabled' : ''}>
+              ${btnLabel}
+            </button>
+
             <a href="${urlEdit}" class="btn btn-sm btn-edit btn-icon"${sid ? '' : ' onclick="return false;"'}>✏️ Modifier</a>
             <a href="${urlBulletin}" class="btn btn-warning"${sid ? '' : ' onclick="return false;"'}>📄 Bulletin</a>
           </div>
@@ -157,6 +218,7 @@ function withId(urlTpl, id) { return urlTpl.replace(SENTINEL, String(id)); }
     `;
   }
 
+  /* ---------- UI helpers ---------- */
   function renderPager(page, pages) {
     if (!pager) return;
     if (!pages || pages <= 1) { pager.innerHTML = ''; return; }
@@ -172,19 +234,69 @@ function withId(urlTpl, id) { return urlTpl.replace(SENTINEL, String(id)); }
     });
   }
 
-  // Lignes cliquables (ignore clics sur boutons/inputs)
   function attachRowClicks() {
     document.querySelectorAll('tr.row-click').forEach(tr => {
       tr.addEventListener('click', (e) => {
         if (e.target.closest('a,button,input,select,textarea,form,[role="button"]')) return;
         const href = tr.getAttribute('data-href');
-        if (href) window.location.href = href;
+        if (href && href !== '#') window.location.href = href;
       });
     });
   }
 
-  // activer pour le rendu initial
-  attachRowClicks();
+  function attachAjaxButtons() {
+    document.querySelectorAll('.btn-toggle-bulletins').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id   = btn.getAttribute('data-id');
+        const csrf = btn.getAttribute('data-csrf');
+        if (!id || !csrf) return;
+
+        fetch(withId(routes.toggleBulletins, id), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: `_token=${encodeURIComponent(csrf)}`
+        })
+        .then(r => { if (!r.ok) throw new Error('HTTP '+r.status); })
+        .then(() => fetchPage(currentPage))
+        .catch(console.error);
+      });
+    });
+  }
+
+  function attachAjaxPayment() {
+    document.querySelectorAll('.sw-pay').forEach(sw => {
+      sw.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id   = sw.getAttribute('data-id');
+        const csrf = sw.getAttribute('data-csrf');
+        if (!id || !csrf) { sw.checked = !sw.checked; return; }
+
+        fetch(withId(routes.togglePaiement, id), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: `_token=${encodeURIComponent(csrf)}`
+        })
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); })
+        .then(() => fetchPage(currentPage))
+        .catch(err => {
+          console.error(err);
+          sw.checked = !sw.checked;
+        });
+      });
+    });
+  }
+
+  /* ---------- Initial bindings ---------- */
+  setBulkEnabled(true);           // harmless if buttons don’t exist
+  attachAjaxPayment();            // for server-rendered page
+  attachRowClicks();              // for server-rendered page
 
   fNom.addEventListener('input', trigger);
   fPrenom.addEventListener('input', trigger);

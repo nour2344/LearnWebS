@@ -134,9 +134,15 @@
           <div class="k">Nom</div>          <div class="v">{{ etudiant.nom }}</div>
           <div class="k">Prénom</div>       <div class="v">{{ etudiant.prenom }}</div>
           <div class="k">Classe</div>       <div class="v">{{ etudiant.classe }}</div>
+
           <div class="k">Téléphone</div>    <div class="v">{{ etudiant.numTel }}</div>
+          <div class="k">Téléphone 2</div>  <div class="v">{{ etudiant.numTel2 ?? '—' }}</div>
+
           <div class="k">Naissance</div>    <div class="v">{{ etudiant.dateN ? etudiant.dateN|date('d/m/Y') }}</div>
           <div class="k">Inscription</div>  <div class="v">{{ etudiant.dateInscription ? etudiant.dateInscription|date('d/m/Y') }}</div>
+
+          <div class="k">Père</div>         <div class="v">{{ etudiant.nomPere ?? '—' }}</div>
+          <div class="k">Mère</div>         <div class="v">{{ etudiant.nomMere ?? '—' }}</div>
         </div>
       </div>
 

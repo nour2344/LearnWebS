@@ -1,0 +1,110 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier la grille{% endblock %}
+
+{% block body %}
+<style>
+  /* page-specific polish (keep or move to your CSS) */
+  .page-head {
+    background: linear-gradient(90deg,#f8fafc, #eef2ff);
+    border: 1px solid #e5e7eb;
+    border-radius: .75rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .crumbs a { color:#64748b; text-decoration: none; }
+  .crumbs a:hover { text-decoration: underline; }
+  .pill { font-size:.75rem; padding:.25rem .5rem; border-radius:999px; background:#ecfeff; color:#0369a1; border:1px solid #bae6fd; }
+  .panel { border:1px solid #e5e7eb; border-radius:.75rem; background:#fff; }
+  .panel .panel-body { padding:1.25rem; }
+  .sticky-actions {
+    position: sticky; bottom: 0; z-index: 2;
+    background: rgba(255,255,255,.9); backdrop-filter: blur(4px);
+    border-top: 1px solid #e5e7eb; padding: .75rem 1rem; border-radius: 0 0 .75rem .75rem;
+  }
+</style>
+
+<div class="container py-4">
+
+  <!-- header -->
+  <div class="page-head d-flex flex-wrap align-items-center justify-content-between">
+    <div>
+      <div class="crumbs small mb-1">
+        <a href="{{ path('emplois_grille_index') }}">Emplois (grilles)</a> ·
+        <span class="text-muted">Édition</span>
+      </div>
+      <h1 class="h3 m-0">
+        ✏️ Modifier la grille
+      </h1>
+    </div>
+    <div class="d-flex gap-2">
+      {% set current = form.vars.data %}
+      {% if current and current.classe %}
+        <span class="pill">Classe&nbsp;: {{ current.classe }}</span>
+      {% endif %}
+      {% if current and current.effectiveFrom %}
+        <span class="pill">Dès&nbsp;{{ current.effectiveFrom|date('Y-m-d') }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- form card -->
+  <div class="panel shadow-sm">
+    {{ form_start(form) }}
+      <div class="panel-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            {{ form_label(form.classe, 'Classe', {'label_attr': {'class': 'form-label fw-semibold'}}) }}
+            {{ form_widget(form.classe, {'attr': {'class': 'form-control', 'placeholder':'ex. 3B-Info'}}) }}
+            {{ form_errors(form.classe) }}
+          </div>
+
+          <div class="col-md-5">
+            {{ form_label(form.titre, 'Titre (optionnel)', {'label_attr': {'class': 'form-label fw-semibold'}}) }}
+            {{ form_widget(form.titre, {'attr': {'class': 'form-control', 'placeholder':'Semaine 2, Trimestre 1…'}}) }}
+            {{ form_errors(form.titre) }}
+          </div>
+
+          <div class="col-md-3">
+            {{ form_label(form.effectiveFrom, 'Applicable à partir du', {'label_attr': {'class': 'form-label fw-semibold'}}) }}
+            {{ form_widget(form.effectiveFrom, {'attr': {'class': 'form-control'}}) }}
+            {{ form_errors(form.effectiveFrom) }}
+          </div>
+        </div>
+
+        {% if form.vars.errors|length %}
+          <div class="alert alert-danger mt-3 mb-0">
+            {{ form_errors(form) }}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="sticky-actions d-flex flex-wrap justify-content-between align-items-center">
+        <div class="small text-muted">
+          Astuce : <kbd>Ctrl</kbd> + <kbd>S</kbd> pour enregistrer (navigateur desktop).
+        </div>
+        <div class="d-flex gap-2">
+          {% set id = form.vars.data ? form.vars.data.id : null %}
+          {% if id %}
+            <a class="btn btn-outline-info"
+               href="{{ path('emplois_lignes_index', { emploi: id }) }}">Gérer les créneaux</a>
+          {% endif %}
+          <a class="btn btn-outline-secondary" href="{{ path('emplois_grille_index') }}">Annuler</a>
+          <button class="btn btn-success">💾 Mettre à jour</button>
+        </div>
+      </div>
+    {{ form_end(form) }}
+  </div>
+</div>
+
+<script>
+  // Optional: save with Ctrl/Cmd+S (desktop)
+  document.addEventListener('keydown', function(e){
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      const btn = document.querySelector('button.btn.btn-success');
+      if (btn) btn.click();
+    }
+  });
+</script>
+{% endblock %}
