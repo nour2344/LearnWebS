@@ -1,0 +1,25 @@
+faq:
+  - q: "Quels sont les horaires de l’école ?"
+    kw: ["horaires", "ouverture", "fermeture", "matin", "après-midi"]
+    a: >
+      Horaires d’ouverture: <strong>08:00–17:30</strong> du lundi au vendredi.
+      Accueil des élèves à partir de 7:45. Permanence au secrétariat 08:30–16:30.
+  - q: "Comment déclarer une absence ?"
+    kw: ["absence", "retard", "certificat"]
+    a: >
+      Merci d'informer le secrétariat par e-mail <a href="mailto:secretariat@ecole.tn">secretariat@ecole.tn</a> ou au
+      <a href="tel:+21600000000">+216 00 000 000</a> avant 08:30. Un certificat peut être déposé à l’accueil.
+  - q: "Comment payer les frais de scolarité ?"
+    kw: ["paiement", "mensualité", "frais", "caisse", "banque"]
+    a: >
+      Paiement par caisse (8:30–15:30), virement bancaire, ou en ligne si activé.
+      Les échéances sont indiquées sur la fiche élève.
+  - q: "Où trouver le calendrier scolaire ?"
+    kw: ["calendrier", "vacances", "jours fériés"]
+    a: >
+      Le calendrier est disponible au format PDF <em>(ajoutez un lien ici)</em> et affiché au panneau d’information.
+  - q: "Coordonnées et adresse ?"
+    kw: ["contact", "adresse", "téléphone", "email", "localisation"]
+    a: >
+      Adresse: Avenue Exemple, Tunis. Téléphone: <a href="tel:+21600000000">+216 00 000 000</a>.
+      E-mail: <a href="mailto:contact@ecole.tn">contact@ecole.tn</a>.

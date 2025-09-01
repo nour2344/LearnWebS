@@ -1,3 +1,4 @@
+# config/packages/security.yaml
 security:
   password_hashers:
     App\Entity\User: 'auto'
@@ -36,19 +37,21 @@ security:
     # --- Auth pages & registration flow ---
     - { path: ^/login$,    roles: PUBLIC_ACCESS }
     - { path: ^/register$, roles: PUBLIC_ACCESS }
-    # verification link can be public; the controller itself checks IS_AUTHENTICATED_FULLY
     - { path: ^/verify/email$, roles: PUBLIC_ACCESS }
 
     # --- Public home page ---
     - { path: ^/$, roles: PUBLIC_ACCESS }
 
+    # --- Parent chatbot API (protected) ---
+    - { path: ^/api/parent/chat$, roles: ROLE_PARENT }
+
+    # --- Public admin API (if you want it public) ---
+    - { path: ^/admin/emplois/api, roles: PUBLIC_ACCESS }
+
     # --- Protected areas ---
-    - { path: ^/parent,                             roles: ROLE_PARENT }
-    - { path: ^/admin,                              roles: ROLE_ADMIN }
+    - { path: ^/parent, roles: ROLE_PARENT }
+    - { path: ^/admin,  roles: ROLE_ADMIN }
     - { path: ^/(etudiant|paiement|personnel|salaire), roles: ROLE_ADMIN }
 
-    # --- Catch‑all: anything else requires login ---
+    # --- Catch-all: anything else requires login ---
     - { path: ^/, roles: IS_AUTHENTICATED_FULLY }
-    - { path: ^/admin/emplois, roles: ROLE_ADMIN }
-  # Keep your public API open if you like (or protect it)
-    - { path: ^/admin/emplois/api, roles: PUBLIC_ACCESS }

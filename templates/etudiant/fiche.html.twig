@@ -1,3 +1,4 @@
+{# templates/etudiant/fiche.html.twig #}
 <div class="student-fiche">
 
   <style>
@@ -113,6 +114,12 @@
 
   <div class="container-wide">
 
+    {# Compute a safe back URL: prefer Referer, else provided backRoute, else admin index #}
+    {% set backUrl = app.request.headers.get('referer')
+      ? app.request.headers.get('referer')
+      : (backRoute is defined ? path(backRoute) : path('etudiant_index'))
+    %}
+
     <!-- Header -->
     <div class="hero">
       <div class="avatar" aria-hidden="true">👩‍🎓</div>
@@ -121,7 +128,7 @@
         <small>Détails et état des paiements mensuels</small>
       </div>
       <div class="actions">
-        <a href="{{ path('etudiant_index') }}" class="btn">⬅️ Retour</a>
+        <a href="{{ backUrl }}" class="btn">⬅️ Retour</a>
         <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimer</button>
       </div>
     </div>

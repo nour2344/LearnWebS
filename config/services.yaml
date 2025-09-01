@@ -1,3 +1,4 @@
+# config/services.yaml
 parameters: {}
 
 services:
@@ -13,6 +14,11 @@ services:
       - '../src/Entity/'
       - '../src/Kernel.php'
       # - '../src/Tests/'
+
+  # Chatbot FAQ provider (points to your YAML file)
+  App\Service\SchoolFaqProvider:
+    arguments:
+      $faqPath: '%kernel.project_dir%/config/school_faq.yaml'
 
   # --- EMAIL TEMPLATE RENDERING (TemplatedEmail) ---
   mailer.twig_body_renderer:
