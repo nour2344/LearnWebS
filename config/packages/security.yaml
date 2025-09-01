@@ -55,3 +55,5 @@ security:
 
     # --- Catch-all: anything else requires login ---
     - { path: ^/, roles: IS_AUTHENTICATED_FULLY }
+    - { path: ^/api/parent/chat$, roles: ROLE_PARENT }
+    - { path: ^/api/parent/chat/feedback$, roles: ROLE_PARENT }

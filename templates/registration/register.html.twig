@@ -120,28 +120,38 @@
           </div>
         </div>
 
-        {# Champ lié à l'EntityType (parentForm.child) — on le remplit via JS #}
+        {# Champ lié à l'EntityType (parentForm.child) — rempli via JS #}
         <div class="d-none">
-  {{ form_widget(parentForm.child, {'attr': {'id': 'parent_child_hidden'}}) }}
-</div>
-
+          {{ form_widget(parentForm.child, {'attr': {'id': 'parent_child_hidden'}}) }}
+        </div>
 
         <div class="divider"></div>
 
-        <h5 class="mb-3">Connexion</h5>
-        <div class="row g-4">
-          <div class="col-md-6">
-            {{ form_label(parentForm.email, 'Email', {'label_attr': {'class':'form-label'}}) }}
-            {{ form_widget(parentForm.email, {'attr': {'class': 'form-control', 'placeholder': 'ex. parent@domaine.tn'}}) }}
+        {# --- Connexion (optionnelle) : ne l'afficher que si les champs existent sur parentForm --- #}
+        {% set hasParentEmail = parentForm.email is defined %}
+        {% set hasParentPwd   = parentForm.plainPassword is defined %}
+
+        {% if hasParentEmail or hasParentPwd %}
+          <h5 class="mb-3">Connexion</h5>
+          <div class="row g-4">
+            {% if hasParentEmail %}
+              <div class="col-md-6">
+                {{ form_label(parentForm.email, 'Email', {'label_attr': {'class':'form-label'}}) }}
+                {{ form_widget(parentForm.email, {'attr': {'class': 'form-control', 'placeholder': 'ex. parent@domaine.tn'}}) }}
+              </div>
+            {% endif %}
+
+            {% if hasParentPwd %}
+              <div class="col-md-6">
+                {{ form_label(parentForm.plainPassword, 'Mot de passe', {'label_attr': {'class':'form-label'}}) }}
+                <div class="input-group">
+                  {{ form_widget(parentForm.plainPassword, {'attr': {'class': 'form-control', 'placeholder': 'Au moins 8 caractères', 'id':'parent_pwd'}}) }}
+                  <button class="btn btn-outline-secondary" type="button" id="toggleParentPwd" aria-label="Afficher/Cacher">👁</button>
+                </div>
+              </div>
+            {% endif %}
           </div>
-          <div class="col-md-6">
-            {{ form_label(parentForm.plainPassword, 'Mot de passe', {'label_attr': {'class':'form-label'}}) }}
-            <div class="input-group">
-              {{ form_widget(parentForm.plainPassword, {'attr': {'class': 'form-control', 'placeholder': 'Au moins 8 caractères', 'id':'parent_pwd'}}) }}
-              <button class="btn btn-outline-secondary" type="button" id="toggleParentPwd" aria-label="Afficher/Cacher">👁</button>
-            </div>
-          </div>
-        </div>
+        {% endif %}
 
         <div class="mt-4 d-grid">
           <button class="btn btn-success btn-xl" name="register_parent">Créer le compte parent</button>
@@ -170,7 +180,7 @@
   const classeSelect = document.getElementById('classeSelect');
   const childInput   = document.getElementById('childInput');
   const childList    = document.getElementById('childList');
-  const hiddenChild  = document.getElementById('parent_child_hidden'); // may be null if field missing/renamed
+  const hiddenChild  = document.getElementById('parent_child_hidden');
 
   function resetChildInput(disable = true) {
     if (childInput) {
@@ -239,7 +249,7 @@
           item.textContent = `${s.nom} ${s.prenom}`;
           item.onclick = () => {
             if (childInput) childInput.value = `${s.nom} ${s.prenom}`;
-            if (hiddenChild) hiddenChild.value = s.id;  // guard: only if exists
+            if (hiddenChild) hiddenChild.value = s.id;
             childList.innerHTML = '';
           };
           childList.appendChild(item);

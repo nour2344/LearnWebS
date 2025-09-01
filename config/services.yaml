@@ -15,6 +15,13 @@ services:
       - '../src/Kernel.php'
       # - '../src/Tests/'
 
+  # Optional LLM rewriter (SchoolAssistant accepts it as nullable)
+  App\Service\AiRewriter:
+    arguments:
+      $provider: '%env(default::string:AI_PROVIDER)%'
+      $openAiApiKey: '%env(default::string:OPENAI_API_KEY)%'
+      $model: '%env(default::string:AI_MODEL)%'
+
   # Chatbot FAQ provider (points to your YAML file)
   App\Service\SchoolFaqProvider:
     arguments:
