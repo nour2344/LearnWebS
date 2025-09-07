@@ -14,9 +14,11 @@
   .nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; }
   .btn-xl { padding: .85rem 1.25rem; font-weight: 700; border-radius: 12px; }
 
-  /* Dropdown autocomplétion */
+  /* Autocomplétion enfant */
   .autocomplete-wrap { position: relative; }
   #childList { max-height: 260px; overflow-y: auto; z-index: 20; }
+  /* on masque le select EntityType mais il reste focusable au besoin */
+  .sr-only-like { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
 </style>
 
 <div class="reg-wrap mt-5 mb-5">
@@ -84,17 +86,18 @@
     {# ====================== PARENT ====================== #}
     <div class="tab-pane fade" id="parent" role="tabpanel" aria-labelledby="parent-tab">
       <div class="card reg-card p-4 p-md-5">
-        {{ form_start(parentForm) }}
+        {# novalidate pour éviter l’HTML5 "focusable" sur les champs masqués #}
+        {{ form_start(parentForm, {'attr': {'novalidate':'novalidate'}}) }}
 
         <h5 class="mb-3">Informations du parent</h5>
         <div class="row g-4">
           <div class="col-md-6">
-            {{ form_label(parentForm.fullName, 'Votre nom complet', {'label_attr': {'class':'form-label'}}) }}
-            {{ form_widget(parentForm.fullName, {'attr': {'class': 'form-control', 'placeholder': 'ex. Amel Ben Ali'}}) }}
+            {{ form_label(parentForm.fullName, 'Votre nom complet (père ou mère)', {'label_attr': {'class':'form-label'}}) }}
+            {{ form_widget(parentForm.fullName, {'attr': {'class': 'form-control', 'placeholder': 'ex. Nom du père OU de la mère'}}) }}
           </div>
           <div class="col-md-6">
-            {{ form_label(parentForm.phone, 'Téléphone', {'label_attr': {'class':'form-label'}}) }}
-            {{ form_widget(parentForm.phone, {'attr': {'class': 'form-control', 'placeholder': 'ex. 22123456'}}) }}
+            {{ form_label(parentForm.phone, 'Téléphone (n°1 ou n°2)', {'label_attr': {'class':'form-label'}}) }}
+            {{ form_widget(parentForm.phone, {'attr': {'class': 'form-control', 'placeholder': 'ex. 22 123 456 (n°1 ou n°2)'}}) }}
           </div>
         </div>
 
@@ -110,6 +113,8 @@
                 <option value="{{ c }}">{{ c }}</option>
               {% endfor %}
             </select>
+            {# valeur envoyée pour la vérification côté serveur #}
+            <input type="hidden" name="classeSelect" id="classeHidden">
           </div>
 
           <div class="col-md-8 autocomplete-wrap">
@@ -120,14 +125,13 @@
           </div>
         </div>
 
-        {# Champ lié à l'EntityType (parentForm.child) — rempli via JS #}
-        <div class="d-none">
+        {# On garde le select EntityType dans le DOM, non requis, et on le remplit via JS #}
+        <div class="sr-only-like">
           {{ form_widget(parentForm.child, {'attr': {'id': 'parent_child_hidden'}}) }}
         </div>
 
         <div class="divider"></div>
 
-        {# --- Connexion (optionnelle) : ne l'afficher que si les champs existent sur parentForm --- #}
         {% set hasParentEmail = parentForm.email is defined %}
         {% set hasParentPwd   = parentForm.plainPassword is defined %}
 
@@ -140,7 +144,6 @@
                 {{ form_widget(parentForm.email, {'attr': {'class': 'form-control', 'placeholder': 'ex. parent@domaine.tn'}}) }}
               </div>
             {% endif %}
-
             {% if hasParentPwd %}
               <div class="col-md-6">
                 {{ form_label(parentForm.plainPassword, 'Mot de passe', {'label_attr': {'class':'form-label'}}) }}
@@ -150,6 +153,14 @@
                 </div>
               </div>
             {% endif %}
+          </div>
+        {% endif %}
+
+        {# Champ SMS si présent dans le form #}
+        {% if parentForm.smsCode is defined %}
+          <div class="mt-3">
+            {{ form_label(parentForm.smsCode, 'Code SMS', {'label_attr': {'class':'form-label'}}) }}
+            {{ form_widget(parentForm.smsCode, {'attr': {'class': 'form-control', 'placeholder': 'ex. 1234'}}) }}
           </div>
         {% endif %}
 
@@ -166,7 +177,7 @@
 
 <script>
 (function () {
-  /* ===== Afficher/Cacher les mots de passe ===== */
+  /* ===== Afficher/Cacher mots de passe ===== */
   function bindToggle(btnId, inputId) {
     const btn = document.getElementById(btnId);
     const inp = document.getElementById(inputId);
@@ -178,9 +189,14 @@
 
   /* ===== Classe → saisie + autocomplétion enfant ===== */
   const classeSelect = document.getElementById('classeSelect');
+  const classeHidden = document.getElementById('classeHidden');
   const childInput   = document.getElementById('childInput');
   const childList    = document.getElementById('childList');
   const hiddenChild  = document.getElementById('parent_child_hidden');
+
+  function syncClasseHidden() {
+    if (classeHidden) classeHidden.value = classeSelect?.value || '';
+  }
 
   function resetChildInput(disable = true) {
     if (childInput) {
@@ -191,28 +207,24 @@
     if (childList) childList.innerHTML = '';
   }
 
-  // Activer/désactiver l'input selon la classe
   if (classeSelect) {
-    classeSelect.addEventListener('change', () => {
-      resetChildInput(!classeSelect.value);
-    });
+    const onClassChange = () => { syncClasseHidden(); resetChildInput(!classeSelect.value); };
+    classeSelect.addEventListener('change', onClassChange);
+    onClassChange();
   }
 
-  // Fermer la liste si on clique ailleurs
   document.addEventListener('click', (e) => {
     if (!childList) return;
     const inside = (e.target === childInput) || childList.contains(e.target);
     if (!inside) childList.innerHTML = '';
   });
 
-  // Autocomplétion côté serveur (min 2 lettres)
   let lastController = null;
   if (childInput) {
     childInput.addEventListener('input', async () => {
       const classe = classeSelect?.value;
       const q = childInput.value.trim();
 
-      // Safety reset
       if (!classe || q.length < 2) {
         if (childList) childList.innerHTML = '';
         if (hiddenChild) hiddenChild.value = '';
@@ -230,7 +242,6 @@
           redirect: 'follow'
         });
 
-        // If the server redirected us to /login (not public), bail out gracefully
         if (!resp.ok || resp.headers.get('content-type')?.includes('text/html')) {
           if (childList) childList.innerHTML = '';
           return;
@@ -249,19 +260,16 @@
           item.textContent = `${s.nom} ${s.prenom}`;
           item.onclick = () => {
             if (childInput) childInput.value = `${s.nom} ${s.prenom}`;
-            if (hiddenChild) hiddenChild.value = s.id;
+            if (hiddenChild) hiddenChild.value = s.id; // sélectionne l’option du select EntityType
             childList.innerHTML = '';
           };
           childList.appendChild(item);
         });
       } catch (_) {
-        // silencieux
+        /* silencieux */
       }
     });
   }
-
-  // État initial
-  resetChildInput(true);
 })();
 </script>
 

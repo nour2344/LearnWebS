@@ -1,23 +1,46 @@
 {% extends 'base.html.twig' %}
+
 {% block body %}
 <h1>Emplois (grilles)</h1>
-<a class="btn btn-primary" href="{{ path('emplois_grille_new') }}">Nouvelle grille</a>
-<table class="table mt-3">
-  <tr><th>Classe</th><th>À partir du</th><th>Titre</th><th></th></tr>
-  {% for e in emplois %}
-    <tr>
-      <td>{{ e.classe }}</td>
-      <td>{{ e.effectiveFrom|date('Y-m-d') }}</td>
-      <td>{{ e.titre }}</td>
-      <td>
-        <a class="btn btn-sm btn-info" href="{{ path('emplois_lignes_index', {emploi:e.id}) }}">Gérer les lignes</a>
-        <a class="btn btn-sm btn-secondary" href="{{ path('emplois_grille_edit', {id:e.id}) }}">Modifier</a>
-        <form method="post" action="{{ path('emplois_grille_delete',{id:e.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer ?')">
-          <input type="hidden" name="_token" value="{{ csrf_token('del_grille_' ~ e.id) }}">
-          <button class="btn btn-sm btn-danger">Supprimer</button>
-        </form>
-      </td>
-    </tr>
-  {% endfor %}
+
+<div class="d-flex gap-2 align-items-center mb-2">
+  <a class="btn btn-primary" href="{{ path('emplois_grille_new') }}">Nouvelle grille</a>
+
+  <div class="ms-auto" style="max-width:340px; width:100%;">
+    <input id="searchEmpl" class="form-control" type="search"
+           placeholder="Rechercher (classe ou titre)…" autocomplete="off">
+  </div>
+</div>
+
+<table class="table mt-2">
+  <thead>
+    <tr><th>Classe</th><th>À partir du</th><th>Titre</th><th></th></tr>
+  </thead>
+  <tbody id="emploisRows">
+    {# first render server-side #}
+    {% include 'emplois_grille/_rows.html.twig' with { emplois: emplois } %}
+  </tbody>
 </table>
+
+<script>
+(function(){
+  const input = document.getElementById('searchEmpl');
+  const rows  = document.getElementById('emploisRows');
+  if(!input || !rows) return;
+
+  let timer = null;
+  input.addEventListener('input', function(){
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const q = input.value.trim();
+      try{
+        const url = new URL('{{ path('emplois_grille_search') }}', window.location.origin);
+        if(q) url.searchParams.set('q', q);
+        const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        rows.innerHTML = await resp.text();
+      }catch(_){ /* ignore */ }
+    }, 250);
+  });
+})();
+</script>
 {% endblock %}

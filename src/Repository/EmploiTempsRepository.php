@@ -29,4 +29,20 @@ class EmploiTempsRepository extends ServiceEntityRepository
 
     return $qb->setMaxResults(1)->getQuery()->getOneOrNullResult();
 }
+public function searchManual(?string $term): array
+{
+    $qb = $this->createQueryBuilder('e')
+        ->andWhere('e.mode = :m')->setParameter('m', 'manual')
+        ->orderBy('e.classe', 'ASC')
+        ->addOrderBy('e.effectiveFrom', 'DESC');
+
+    $term = trim((string) $term);
+    if ($term !== '') {
+        $qb->andWhere('e.classe LIKE :t OR e.titre LIKE :t')
+           ->setParameter('t', '%'.$term.'%');
+    }
+
+    return $qb->getQuery()->getResult();
+}
+
 }

@@ -98,4 +98,6 @@ public function suggestByClasseAndName(string $classe, string $q, int $limit = 1
 
     return $qb->getQuery()->getResult();
 }
+
+
 }

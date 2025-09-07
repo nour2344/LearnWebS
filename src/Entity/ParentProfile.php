@@ -17,7 +17,6 @@ class ParentProfile
     #[ORM\Column(type: 'integer')]
     private ?int $id = null;
 
-    // Owning side of the 1-1 (has the foreign key)
     #[ORM\OneToOne(inversedBy: 'parentProfile', cascade: ['persist','remove'])]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?User $user = null;

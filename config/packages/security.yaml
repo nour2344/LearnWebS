@@ -16,11 +16,15 @@ security:
 
     main:
       provider: app_user_provider
-      custom_authenticator:
-        - App\Security\AppAuthenticator
+      lazy: true
+      # Explicitly pick the login form as the entry point (redirect target for anonymous users)
+      entry_point: App\Security\AppAuthenticator
+      custom_authenticators:
+        - App\Security\AppAuthenticator          # Admin (email + password)
+        - App\Security\ParentOtpAuthenticator    # Parent (OTP, no password)
       remember_me:
         secret: '%kernel.secret%'
-        lifetime: 604800
+        lifetime: 604800      # 7 days
         path: /
       logout:
         path: app_logout
@@ -30,30 +34,27 @@ security:
         csrf_token_id: logout
 
   access_control:
-    # --- PUBLIC API (autocomplete) — must come first ---
-    - { path: ^/etudiant/api/etudiants/suggest,  roles: PUBLIC_ACCESS }
+    # ---------- Public endpoints ----------
+    - { path: ^/etudiant/api/etudiants/suggest,   roles: PUBLIC_ACCESS }
     - { path: ^/etudiant/api/etudiants/by-classe, roles: PUBLIC_ACCESS }
+    - { path: ^/login$,                           roles: PUBLIC_ACCESS }            # GET (render) and POST (admin login)
+    - { path: ^/login/parent/request-code$,       roles: PUBLIC_ACCESS }            # Parent requests OTP
+    - { path: ^/login/parent/verify$,             roles: PUBLIC_ACCESS }            # Parent submits OTP
+    - { path: ^/verify/email$,                    roles: PUBLIC_ACCESS }
+    - { path: ^/$,                                roles: PUBLIC_ACCESS }
+    - { path: ^/admin/emplois/api,                roles: PUBLIC_ACCESS }
 
-    # --- Auth pages & registration flow ---
-    - { path: ^/login$,    roles: PUBLIC_ACCESS }
-    - { path: ^/register$, roles: PUBLIC_ACCESS }
-    - { path: ^/verify/email$, roles: PUBLIC_ACCESS }
+    # ---------- Parent area ----------
+    - { path: ^/api/parent/chat$,          roles: ROLE_PARENT }
+    - { path: ^/api/parent/chat/feedback$, roles: ROLE_PARENT }
+    - { path: ^/parent,                    roles: ROLE_PARENT }
 
-    # --- Public home page ---
-    - { path: ^/$, roles: PUBLIC_ACCESS }
+    # ---------- Admin area ----------
+    # Allow ROLE_ADMIN OR (ROLE_STAFF and approved)
+    - { path: ^/admin, allow_if: "is_granted('ROLE_ADMIN') or (is_granted('ROLE_STAFF') and user and user.isStaffApproved())" }
 
-    # --- Parent chatbot API (protected) ---
-    - { path: ^/api/parent/chat$, roles: ROLE_PARENT }
-
-    # --- Public admin API (if you want it public) ---
-    - { path: ^/admin/emplois/api, roles: PUBLIC_ACCESS }
-
-    # --- Protected areas ---
-    - { path: ^/parent, roles: ROLE_PARENT }
-    - { path: ^/admin,  roles: ROLE_ADMIN }
+    # Back-office sections (admins only)
     - { path: ^/(etudiant|paiement|personnel|salaire), roles: ROLE_ADMIN }
 
-    # --- Catch-all: anything else requires login ---
+    # ---------- Catch-all ----------
     - { path: ^/, roles: IS_AUTHENTICATED_FULLY }
-    - { path: ^/api/parent/chat$, roles: ROLE_PARENT }
-    - { path: ^/api/parent/chat/feedback$, roles: ROLE_PARENT }

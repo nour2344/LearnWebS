@@ -5,8 +5,8 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Entity\Etudiant;
 use App\Entity\ParentProfile;
-use App\Form\RegistrationFormType;        // staff form (existing)
-use App\Form\ParentRegisterFormType;      // parent form (new)
+use App\Form\RegistrationFormType;
+use App\Form\ParentRegisterFormType;
 use App\Security\EmailVerifier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
@@ -31,13 +31,12 @@ class RegistrationController extends AbstractController
         EntityManagerInterface $em
     ): Response {
         if ($this->getUser()) {
-            // already logged in – bounce to the right area
             return $this->isGranted('ROLE_PARENT')
                 ? $this->redirectToRoute('parent_home')
                 : $this->redirectToRoute('app_admin');
         }
 
-        // --- Staff form (existing) ---
+        // ---------- Staff form
         $staffUser = new User();
         $staffForm = $this->createForm(RegistrationFormType::class, $staffUser);
         $staffForm->handleRequest($request);
@@ -46,7 +45,7 @@ class RegistrationController extends AbstractController
             if ($staffForm->isValid()) {
                 $plain = (string) $staffForm->get('plainPassword')->getData();
                 $staffUser->setPassword($hasher->hashPassword($staffUser, $plain));
-                $staffUser->setRoles(['ROLE_ADMIN']); // adapt to your staff role
+                $staffUser->setRoles(['ROLE_ADMIN']); // adapte si besoin
 
                 $em->persist($staffUser);
                 $em->flush();
@@ -66,72 +65,112 @@ class RegistrationController extends AbstractController
             }
         }
 
-        // --- Parent form ---
+        // ---------- Parent form
         $parentForm = $this->createForm(ParentRegisterFormType::class);
         $parentForm->handleRequest($request);
 
         if ($parentForm->isSubmitted() && $request->request->has('register_parent')) {
-            // Run our custom validation FIRST (regardless of isValid)
             /** @var Etudiant|null $child */
             $child = $parentForm->get('child')->getData();
 
             $hasCustomError = false;
 
             $normName = static function (?string $s): string {
-                return preg_replace('/\s+/', ' ', mb_strtolower(trim((string)$s)));
+                return preg_replace('/\s+/', ' ', mb_strtolower(trim((string) $s)));
             };
             $digits = static function (?string $s): string {
-                return preg_replace('/\D+/', '', (string)$s);
+                return preg_replace('/\D+/', '', (string) $s);
             };
 
             $inputFullName = $normName($parentForm->get('fullName')->getData());
             $inputPhone    = $digits($parentForm->get('phone')->getData());
+            $chosenClass   = (string) $request->request->get('classeSelect', '');
 
             $allowedNames = array_filter([
                 $normName($child?->getNomPere()),
                 $normName($child?->getNomMere()),
-            ], static fn($v) => $v !== '');
+            ], static fn ($v) => $v !== '');
 
             $allowedPhones = array_values(array_filter([
                 $digits($child?->getNumTel()),
                 $digits($child?->getNumTel2()),
-            ], static fn($v) => $v !== ''));
+            ], static fn ($v) => $v !== ''));
 
             if (!$child) {
                 $parentForm->get('child')->addError(new FormError('Sélectionnez votre enfant.'));
                 $hasCustomError = true;
             }
 
+            if ($child && $chosenClass !== '' && $child->getClasse() !== $chosenClass) {
+                $parentForm->get('child')->addError(new FormError(
+                    'La classe ne correspond pas à celle de l’élève sélectionné.'
+                ));
+                $hasCustomError = true;
+            }
+
             if (!\in_array($inputFullName, $allowedNames, true)) {
                 $parentForm->get('fullName')->addError(new FormError(
-                    'Le nom saisi doit correspondre au père ou à la mère enregistrés pour cet élève.'
+                    'Le nom saisi doit correspondre au père OU à la mère enregistrés pour cet élève.'
                 ));
                 $hasCustomError = true;
             }
 
             if (!\in_array($inputPhone, $allowedPhones, true)) {
                 $parentForm->get('phone')->addError(new FormError(
-                    'Le téléphone doit correspondre à l’un des numéros enregistrés pour cet élève.'
+                    'Le téléphone doit être l’un des numéros enregistrés (n°1 ou n°2).'
                 ));
                 $hasCustomError = true;
             }
 
-            // If Symfony base constraints OR custom checks fail → re-render with errors
+            // SMS code (démo)
+            if ($parentForm->has('smsCode')) {
+                $code = (string) $parentForm->get('smsCode')->getData();
+                if ($code !== '' && $code !== '1234') {
+                    $parentForm->get('smsCode')->addError(new FormError('Code SMS invalide.'));
+                    $hasCustomError = true;
+                }
+            }
+
+            // Doublons
+            $email = $parentForm->has('email') ? (string) $parentForm->get('email')->getData() : '';
+            if ($email !== '' && $em->getRepository(User::class)->findOneBy(['email' => $email])) {
+                $parentForm->get('email')->addError(new FormError('Cet e-mail est déjà utilisé.'));
+                $hasCustomError = true;
+            }
+
+            $existingPhoneOwner = $em->getRepository(ParentProfile::class)
+                ->findOneBy(['phone' => (string) $parentForm->get('phone')->getData()]);
+            if ($existingPhoneOwner) {
+                $parentForm->get('phone')->addError(new FormError('Un compte parent utilise déjà ce téléphone.'));
+                $hasCustomError = true;
+            }
+
+            if ($child) {
+                $dup = $em->createQuery('
+                    SELECT pp.id FROM App\Entity\ParentProfile pp
+                    JOIN pp.children c WITH c = :child
+                ')
+                    ->setParameter('child', $child)
+                    ->setMaxResults(1)
+                    ->getOneOrNullResult();
+
+                if ($dup) {
+                    $parentForm->get('child')->addError(new FormError('Un parent est déjà associé à cet élève.'));
+                    $hasCustomError = true;
+                }
+            }
+
             if (!$parentForm->isValid() || $hasCustomError) {
                 return $this->render('registration/register.html.twig', [
                     'registrationForm' => $staffForm->createView(),
                     'parentForm'       => $parentForm->createView(),
-                    'classes'          => $em->getRepository(Etudiant::class)
-                        ->createQueryBuilder('e')
-                        ->select('DISTINCT e.classe')
-                        ->getQuery()
-                        ->getSingleColumnResult(),
+                    'classes'          => $this->fetchDistinctClasses($em),
                 ]);
             }
 
-            // --- All good: create user and profile ---
+            // Création du User + ParentProfile
             $user = new User();
-            $user->setEmail((string) $parentForm->get('email')->getData());
+            $user->setEmail($email);
             $user->setRoles(['ROLE_PARENT']);
             $user->setPassword(
                 $hasher->hashPassword($user, (string) $parentForm->get('plainPassword')->getData())
@@ -165,11 +204,7 @@ class RegistrationController extends AbstractController
         return $this->render('registration/register.html.twig', [
             'registrationForm' => $staffForm->createView(),
             'parentForm'       => $parentForm->createView(),
-            'classes'          => $em->getRepository(Etudiant::class)
-                ->createQueryBuilder('e')
-                ->select('DISTINCT e.classe')
-                ->getQuery()
-                ->getSingleColumnResult(),
+            'classes'          => $this->fetchDistinctClasses($em),
         ]);
     }
 
@@ -192,5 +227,17 @@ class RegistrationController extends AbstractController
         return $this->isGranted('ROLE_PARENT')
             ? $this->redirectToRoute('parent_home')
             : $this->redirectToRoute('app_admin');
+    }
+
+    /** @return string[] */
+    private function fetchDistinctClasses(EntityManagerInterface $em): array
+    {
+        $rows = $em->getRepository(Etudiant::class)
+            ->createQueryBuilder('e')
+            ->select('DISTINCT e.classe AS c')
+            ->getQuery()
+            ->getScalarResult();
+
+        return array_values(array_filter(array_map(static fn($r) => $r['c'] ?? null, $rows)));
     }
 }

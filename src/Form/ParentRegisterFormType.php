@@ -37,6 +37,7 @@ class ParentRegisterFormType extends AbstractType
                 'class' => Etudiant::class,
                 'choice_label' => fn(Etudiant $e) => sprintf('%s %s (%s)', $e->getNom(), $e->getPrenom(), $e->getClasse()),
                 'placeholder' => 'Sélectionner',
+                'required' => false, // important: pas d’attribut HTML required (champ masqué)
                 'constraints' => [
                     new Assert\NotNull(['message' => 'Sélectionnez votre enfant.']),
                 ],
@@ -59,7 +60,7 @@ class ParentRegisterFormType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        // no data_class: this form creates a User + ParentProfile manually
+        // Pas de data_class: on crée User + ParentProfile manuellement
         $resolver->setDefaults([]);
     }
 }

@@ -26,9 +26,8 @@ class AppAuthenticator extends AbstractLoginFormAuthenticator
 
     public function authenticate(Request $request): Passport
     {
-        // Support both JSON and regular form posts
         if ('json' === $request->getContentTypeFormat()) {
-            $data = $request->toArray();
+            $data     = $request->toArray();
             $email    = (string) ($data['email'] ?? '');
             $password = (string) ($data['password'] ?? '');
             $csrf     = (string) ($data['_csrf_token'] ?? '');
@@ -40,13 +39,9 @@ class AppAuthenticator extends AbstractLoginFormAuthenticator
             $remember = (bool) $request->request->get('_remember_me', false);
         }
 
-        // keep the last username for the login form
         $request->getSession()->set(SecurityRequestAttributes::LAST_USERNAME, $email);
 
-        $badges = [
-            new CsrfTokenBadge('authenticate', $csrf),
-        ];
-        // Only set remember-me if the user opted in (checkbox checked)
+        $badges = [ new CsrfTokenBadge('authenticate', $csrf) ];
         if ($remember) {
             $badges[] = new RememberMeBadge();
         }
@@ -59,31 +54,30 @@ class AppAuthenticator extends AbstractLoginFormAuthenticator
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
-{
-    $roles = $token->getRoleNames();
-    $targetPath = $this->getTargetPath($request->getSession(), $firewallName);
-    $path = $targetPath ? (parse_url($targetPath, PHP_URL_PATH) ?? '') : '';
+    {
+        $roles = $token->getRoleNames();
+        $targetPath = $this->getTargetPath($request->getSession(), $firewallName);
+        $path = $targetPath ? (parse_url($targetPath, PHP_URL_PATH) ?? '') : '';
 
-    if (in_array('ROLE_PARENT', $roles, true)) {
-        if ($targetPath && str_starts_with($path, '/parent')) {
-            return new RedirectResponse($targetPath);
+        if (in_array('ROLE_PARENT', $roles, true)) {
+            if ($targetPath && str_starts_with($path, '/parent')) {
+                return new RedirectResponse($targetPath);
+            }
+            return new RedirectResponse($this->urlGenerator->generate('parent_home'));
         }
-        return new RedirectResponse($this->urlGenerator->generate('parent_home'));
-    }
 
-    if (in_array('ROLE_ADMIN', $roles, true) || in_array('ROLE_SUPER_ADMIN', $roles, true)) {
-        if ($targetPath && str_starts_with($path, '/')) {
-            return new RedirectResponse($targetPath);
+        if (in_array('ROLE_ADMIN', $roles, true) || in_array('ROLE_SUPER_ADMIN', $roles, true)) {
+            if ($targetPath && str_starts_with($path, '/')) {
+                return new RedirectResponse($targetPath);
+            }
+            return new RedirectResponse($this->urlGenerator->generate('home'));
         }
+
         return new RedirectResponse($this->urlGenerator->generate('home'));
     }
 
-    return new RedirectResponse($this->urlGenerator->generate('home'));
-}
-
-protected function getLoginUrl(Request $request): string
-{
-    return $this->urlGenerator->generate(self::LOGIN_ROUTE);
-}
-
+    protected function getLoginUrl(Request $request): string
+    {
+        return $this->urlGenerator->generate(self::LOGIN_ROUTE);
+    }
 }
