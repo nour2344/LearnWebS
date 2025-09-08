@@ -9,23 +9,37 @@ security:
         class: App\Entity\User
         property: email
 
+    # Provider for the in-memory ParentStudentUser (parents login)
+    parent_student_provider:
+      id: App\Security\ParentStudentUserProvider
+
+    # Use a chain so the firewall can handle BOTH admins and parents
+    chain_provider:
+      chain:
+        providers: [app_user_provider, parent_student_provider]
+
   firewalls:
     dev:
       pattern: ^/(_(profiler|wdt)|css|images|js)/
       security: false
 
     main:
-      provider: app_user_provider
+      provider: chain_provider
       lazy: true
-      # Explicitly pick the login form as the entry point (redirect target for anonymous users)
+
+      # Redirect anonymous users to the login form (tabs show both admin/parent)
       entry_point: App\Security\AppAuthenticator
+
       custom_authenticators:
-        - App\Security\AppAuthenticator          # Admin (email + password)
-        - App\Security\ParentOtpAuthenticator    # Parent (OTP, no password)
+        - App\Security\AppAuthenticator        # Admin (email + password)
+        - App\Security\ParentIdAuthenticator   # Parent (identifiant + password)
+
       remember_me:
         secret: '%kernel.secret%'
-        lifetime: 604800      # 7 days
+        lifetime: 604800   # 7 days
         path: /
+        
+
       logout:
         path: app_logout
         target: app_login
@@ -37,12 +51,20 @@ security:
     # ---------- Public endpoints ----------
     - { path: ^/etudiant/api/etudiants/suggest,   roles: PUBLIC_ACCESS }
     - { path: ^/etudiant/api/etudiants/by-classe, roles: PUBLIC_ACCESS }
-    - { path: ^/login$,                           roles: PUBLIC_ACCESS }            # GET (render) and POST (admin login)
-    - { path: ^/login/parent/request-code$,       roles: PUBLIC_ACCESS }            # Parent requests OTP
-    - { path: ^/login/parent/verify$,             roles: PUBLIC_ACCESS }            # Parent submits OTP
+    - { path: ^/login$,                           roles: PUBLIC_ACCESS }   # GET/POST admin login form
+    - { path: ^/login/parent-id$,                 roles: PUBLIC_ACCESS }   # Parent identifiant+password login POST
+    - { path: ^/register$,                        roles: PUBLIC_ACCESS }   # Registration (admin)
     - { path: ^/verify/email$,                    roles: PUBLIC_ACCESS }
     - { path: ^/$,                                roles: PUBLIC_ACCESS }
     - { path: ^/admin/emplois/api,                roles: PUBLIC_ACCESS }
+
+    # Public pages & assets
+    - { path: ^/landing$,                    roles: PUBLIC_ACCESS }
+    - { path: ^/school/setup$,               roles: PUBLIC_ACCESS }
+    - { path: ^/guide,                       roles: PUBLIC_ACCESS }
+    - { path: ^/adbox,                       roles: PUBLIC_ACCESS }
+    - { path: ^/(assets|build)/,             roles: PUBLIC_ACCESS }
+    - { path: ^/uploads/,                    roles: PUBLIC_ACCESS }
 
     # ---------- Parent area ----------
     - { path: ^/api/parent/chat$,          roles: ROLE_PARENT }
@@ -50,10 +72,7 @@ security:
     - { path: ^/parent,                    roles: ROLE_PARENT }
 
     # ---------- Admin area ----------
-    # Allow ROLE_ADMIN OR (ROLE_STAFF and approved)
     - { path: ^/admin, allow_if: "is_granted('ROLE_ADMIN') or (is_granted('ROLE_STAFF') and user and user.isStaffApproved())" }
-
-    # Back-office sections (admins only)
     - { path: ^/(etudiant|paiement|personnel|salaire), roles: ROLE_ADMIN }
 
     # ---------- Catch-all ----------

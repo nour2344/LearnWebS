@@ -16,6 +16,11 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
 use Symfony\Component\Security\Http\Util\TargetPathTrait;
 
+/**
+ * Admin authenticator (email + password).
+ * NOTE: the ParentStudentUser / $userBadge snippet belongs in ParentIdAuthenticator,
+ * not in this class.
+ */
 class AppAuthenticator extends AbstractLoginFormAuthenticator
 {
     use TargetPathTrait;
@@ -39,9 +44,10 @@ class AppAuthenticator extends AbstractLoginFormAuthenticator
             $remember = (bool) $request->request->get('_remember_me', false);
         }
 
+        // remember last username for the login form
         $request->getSession()->set(SecurityRequestAttributes::LAST_USERNAME, $email);
 
-        $badges = [ new CsrfTokenBadge('authenticate', $csrf) ];
+        $badges = [new CsrfTokenBadge('authenticate', $csrf)];
         if ($remember) {
             $badges[] = new RememberMeBadge();
         }
@@ -53,26 +59,32 @@ class AppAuthenticator extends AbstractLoginFormAuthenticator
         );
     }
 
-    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
-    {
+    public function onAuthenticationSuccess(
+        Request $request,
+        TokenInterface $token,
+        string $firewallName
+    ): ?Response {
         $roles = $token->getRoleNames();
         $targetPath = $this->getTargetPath($request->getSession(), $firewallName);
-        $path = $targetPath ? (parse_url($targetPath, PHP_URL_PATH) ?? '') : '';
+        $path = $targetPath ? (parse_url($targetPath, \PHP_URL_PATH) ?? '') : '';
 
-        if (in_array('ROLE_PARENT', $roles, true)) {
+        // Parents (in case a parent logs via this firewall)
+        if (\in_array('ROLE_PARENT', $roles, true)) {
             if ($targetPath && str_starts_with($path, '/parent')) {
                 return new RedirectResponse($targetPath);
             }
             return new RedirectResponse($this->urlGenerator->generate('parent_home'));
         }
 
-        if (in_array('ROLE_ADMIN', $roles, true) || in_array('ROLE_SUPER_ADMIN', $roles, true)) {
-            if ($targetPath && str_starts_with($path, '/')) {
+        // Admins
+        if (\in_array('ROLE_ADMIN', $roles, true) || \in_array('ROLE_SUPER_ADMIN', $roles, true)) {
+            if ($targetPath && $path && !\preg_match('#^/admin/?$#', $path)) {
                 return new RedirectResponse($targetPath);
             }
             return new RedirectResponse($this->urlGenerator->generate('home'));
         }
 
+        // Fallback
         return new RedirectResponse($this->urlGenerator->generate('home'));
     }
 

@@ -1,0 +1,66 @@
+{% extends 'base.html.twig' %}
+{% block title %}Créer l’administrateur{% endblock %}
+
+{% block body %}
+<style>
+  .wrap{ max-width:720px; margin:40px auto; padding:0 18px; }
+  .title{ font-size:clamp(1.7rem,3.2vw,2.4rem); font-weight:800; letter-spacing:-.02em; }
+  .subtitle{ color:#64748b; margin:.35rem 0 1.2rem }
+  .card{ background:#fff; border:1px solid rgba(2,6,23,.08); border-radius:16px; box-shadow:0 12px 28px rgba(2,6,23,.06); }
+  .card-body{ padding:22px; }
+  .form-label{ font-weight:700 }
+  .form-control{ border-radius:12px; padding:.8rem .9rem }
+  .btn{ border-radius:12px; font-weight:800 }
+  .btn-success{ background:#16a34a; border-color:#16a34a }
+  .btn-primary{ background:#4f46e5; border-color:#4f46e5 }
+</style>
+
+<div class="wrap">
+  <h1 class="title">Créer le compte administrateur</h1>
+  <p class="subtitle">Renseignez l’email et le mot de passe, recevez un code par e-mail puis validez.</p>
+
+  <div class="card">
+    <div class="card-body">
+
+      {% if otp_pending %}
+        <div class="alert alert-info">
+          Un code a été envoyé à <strong>{{ admin_email }}</strong>. Entrez-le pour finaliser la création.
+        </div>
+
+        <form method="post" action="{{ path('school_setup_admin_verify') }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('setup_admin_verify') }}">
+          <div class="mb-3">
+            <label class="form-label" for="otp">Code de vérification</label>
+            <input id="otp" name="otp" class="form-control" placeholder="ex. 123456" required>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-success">Valider</button>
+            <a class="btn btn-outline-secondary" href="{{ path('school_setup_admin') }}">Changer l’adresse</a>
+          </div>
+        </form>
+
+      {% else %}
+
+        <form method="post" action="{{ path('school_setup_admin_send') }}" novalidate>
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('setup_admin_send') }}">
+          <div class="mb-3">
+            <label class="form-label" for="admin_email">Email</label>
+            <input id="admin_email" name="email" type="email" class="form-control" placeholder="ex. admin@ecole.tld" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="admin_pwd">Mot de passe</label>
+            <input id="admin_pwd" name="password" type="password" minlength="8" class="form-control" placeholder="Au moins 8 caractères" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="admin_pwd2">Confirmation</label>
+            <input id="admin_pwd2" name="password_confirm" type="password" minlength="8" class="form-control" required>
+          </div>
+          <button class="btn btn-primary">Envoyer le code</button>
+        </form>
+
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

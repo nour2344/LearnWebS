@@ -1,143 +1,171 @@
 {# templates/base.html.twig #}
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}Gestion Étudiants{% endblock %}</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Gestion Étudiants{% endblock %}</title>
 
-    <!-- Bootstrap + Font Awesome -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  {# ---------- Brand variables (DB -> controller overrides -> defaults) ---------- #}
+  {% set setting  = school_setting() %}
+  {% set dbName   = setting ? setting.name : null %}
+  {% set dbColor  = setting ? setting.primaryColor : null %}
+  {% set dbLogo   = setting and setting.logoFilename ? asset('uploads/logos/' ~ setting.logoFilename) : null %}
 
-    <style>
-        body { background-color: #f6f9fc; color: #000; }
-        .btn-main { background-color: #4a90e2; color: #fff; }
+  {% set schoolName = (school_name is defined and school_name) ? school_name : (dbName ?? 'AdBox Edu') %}
+  {% set brandColor = (school_color is defined and school_color) ? school_color : (dbColor ?? '#4a90e2') %}
+  {% set logoPath   = (school_logo is defined and school_logo) ? school_logo : dbLogo %}
 
-        .pagination .page-item.active .page-link { background-color: #4CAF50; border-color: #4CAF50; color: #fff; }
-        .pagination .page-link { color: #4CAF50; }
-        .pagination .page-link:hover { background-color: #e6f5e6; }
+  {% if logoPath %}
+    <link rel="icon" href="{{ logoPath }}">
+  {% endif %}
+  <meta name="theme-color" content="{{ brandColor }}">
 
-        /* Dark mode */
-        body.dark-mode { background-color: #121212 !important; color: #e0e0e0 !important; }
-        .navbar.dark-mode, .header.dark-mode { background-color: #1f1f1f !important; }
-        .card.dark-mode, .table.dark-mode, .btn-dark-mode, .form-control.dark-mode, .form-select.dark-mode {
-            background-color: #2a2a2a !important; color: #e0e0e0 !important; border-color: #444 !important;
-        }
-        .table-dark th { background-color: #333 !important; color: #fff !important; }
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-        .btn-toggle-theme { transition: all 0.3s; }
-        #themeToggle { z-index: 9999; }
+  {% block stylesheets %}{% endblock %}
 
-        /* Notifications */
-        .notification-bell { position: relative; }
-        .notification-bell .badge { position: absolute; top: -6px; right: -6px; }
-        .dropdown-menu-notif { width: 340px; max-height: 60vh; overflow: auto; }
-    </style>
+  <style>
+    :root { --brand: {{ brandColor }}; }
+
+    body { background-color: #f6f9fc; color: #000; }
+
+    /* Navbar */
+    .navbar { border: 1px solid rgba(0,0,0,.06); }
+    .brand-dot { display:inline-block; width:28px; height:28px; background:var(--brand); border-radius:6px; }
+
+    /* Right-side brand group */
+    .nav-brand-right { display:flex; align-items:center; gap:.5rem; }
+    .nav-avatar {
+      height: 30px; width: auto; border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    }
+    .school-name-right {
+      font-weight: 600;
+      max-width: 220px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* Pagination (green theme kept) */
+    .pagination .page-item.active .page-link { background-color: #4CAF50; border-color: #4CAF50; color: #fff; }
+    .pagination .page-link { color: #4CAF50; }
+    .pagination .page-link:hover { background-color: #e6f5e6; }
+
+    /* Notifications */
+    .notification-bell { position: relative; }
+    .notification-bell .badge { position: absolute; top: -6px; right: -6px; }
+    .dropdown-menu-notif { width: 340px; max-height: 60vh; overflow: auto; }
+
+    /* Brand helpers */
+    .text-brand{color:var(--brand)!important}
+    .border-brand{border-color:var(--brand)!important}
+    .bg-brand{background-color:var(--brand)!important;color:#fff}
+  </style>
 </head>
 
-<body class="container py-4">
+<body class="py-4">
+  {# Show logo + school name ONLY for the admin using admin@gmail.com #}
+  {% set show_brand_for_admin =
+      app.user
+      and is_granted('ROLE_ADMIN')
+      and (app.user.userIdentifier ?? app.user.email ?? '') == 'admin@gmail.com'
+  %}
 
-    {# Compute notifications inside body (before use) #}
+  <nav class="navbar navbar-light navbar-expand-lg bg-light rounded px-3 mb-4">
+    <div class="container-fluid">
 
-    <!-- Top Navbar with Logout on the right -->
-    <nav class="navbar navbar-expand-lg bg-light rounded px-3 mb-4">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav"
+              aria-controls="topNav" aria-expanded="false" aria-label="Menu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
 
-        <div class="ms-auto d-flex align-items-center gap-3">
+      <div class="collapse navbar-collapse" id="topNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0"></ul>
 
-           
+        <div class="d-flex align-items-center gap-3">
 
-          {# ADMIN-ONLY NOTIFICATIONS #}
-    {% if is_granted('ROLE_ADMIN') %}
-      {% set lp = late_payments() %}
-      <div class="dropdown notification-bell">
-        <button class="btn btn-light position-relative" id="notifBell"
-                data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="fas fa-bell"></i>
-          {% if lp|length > 0 %}
-            <span class="badge bg-danger">{{ lp|length }}</span>
+          {# RIGHT: logo + school name (only for that admin) #}
+          {% if show_brand_for_admin %}
+            <div class="nav-brand-right me-2">
+              {% if logoPath %}
+                <img class="nav-avatar" src="{{ logoPath }}" alt="{{ schoolName }}">
+              {% else %}
+                <span class="brand-dot"></span>
+              {% endif %}
+              <span class="school-name-right">{{ schoolName }}</span>
+            </div>
           {% endif %}
-        </button>
 
-        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-notif" aria-labelledby="notifBell">
-          <li class="dropdown-header fw-semibold">Notifications</li>
+          {# Optional admin notifications (also only for that admin) #}
+          {% if show_brand_for_admin and late_payments_list is defined %}
+            {% set lp = late_payments_list %}
+            <div class="dropdown notification-bell">
+              <button class="btn btn-light position-relative" id="notifBell" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-bell"></i>
+                {% if lp|length > 0 %}
+                  <span class="badge bg-danger">{{ lp|length }}</span>
+                {% endif %}
+              </button>
 
-          {% if lp is empty %}
-            <li><span class="dropdown-item-text text-muted">Aucune notification</span></li>
+              <ul class="dropdown-menu dropdown-menu-end dropdown-menu-notif" aria-labelledby="notifBell">
+                <li class="dropdown-header fw-semibold">Notifications</li>
+                {% if lp is empty %}
+                  <li><span class="dropdown-item-text text-muted">Aucune notification</span></li>
+                {% else %}
+                  {% for p in lp %}
+                    {% set displayName = p.displayName
+                      |default(p.personnel is defined and p.personnel
+                        ? (p.personnel.nomP|default('') ~ ' ' ~ p.personnel.prenomP|default(''))
+                        : '—') %}
+                    <li class="dropdown-item">
+                      <div class="d-flex flex-column">
+                        <div>
+                          <strong>{{ displayName|trim }}</strong>
+                          — {{ p.mois|default(p.dateP ? p.dateP|date('F Y') : '') }}
+                        </div>
+                        <small class="text-danger">
+                          {% if p.daysLate is defined %}En retard de {{ p.daysLate }} jours{% else %}En retard{% endif %}
+                        </small>
+                      </div>
+                    </li>
+                  {% endfor %}
+                {% endif %}
+              </ul>
+            </div>
+          {% endif %}
+
+          {# Auth controls #}
+          {% if app.user %}
+            <form method="post" action="{{ path('app_logout') }}" class="d-inline">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+              <button type="submit" class="btn btn-outline-secondary btn-sm">Logout</button>
+            </form>
           {% else %}
-            {% for p in lp %}
-              {% set displayName = p.displayName
-                |default(p.personnel is defined and p.personnel
-                         ? (p.personnel.nomP|default('') ~ ' ' ~ p.personnel.prenomP|default(''))
-                         : '—') %}
-              <li class="dropdown-item">
-                <div class="d-flex flex-column">
-                  <div>
-                    <strong>{{ displayName|trim }}</strong>
-                    — {{ p.mois|default(p.dateP ? p.dateP|date('F Y') : '') }}
-                  </div>
-                  <small class="text-danger">
-                    {% if p.daysLate is defined %}En retard de {{ p.daysLate }} jours{% else %}En retard{% endif %}
-                  </small>
-                </div>
-              </li>
-            {% endfor %}
+            <a class="btn btn-outline-primary btn-sm" href="{{ path('app_login') }}">Login</a>
+            <a class="btn btn-primary btn-sm" href="{{ path('app_register') }}">Register</a>
           {% endif %}
-        </ul>
-      </div>
-    {% endif %}
-
-            {# AUTH AREA: put the LOGOUT button here #}
-            {% if app.user %}
-                <span class="small text-muted">{{ app.user.userIdentifier }}</span>
-
-                {# POST logout with CSRF (matches csrf_token_id: logout in security.yaml) #}
-                <form method="post" action="{{ path('app_logout') }}" class="d-inline">
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
-                    <button type="submit" class="btn btn-outline-secondary btn-sm">Logout</button>
-                </form>
-            {% else %}
-                <a class="btn btn-outline-primary btn-sm" href="{{ path('app_login') }}">Login</a>
-                <a class="btn btn-primary btn-sm" href="{{ path('app_register') }}">Register</a>
-            {% endif %}
         </div>
-    </nav>
+      </div>
+    </div>
+  </nav>
 
+  <div class="container">
+    {% for label, messages in app.flashes %}
+      {% for m in messages %}
+        <div class="alert alert-{{ label == 'error' ? 'danger' : (label == 'success' ? 'success' : 'info') }} alert-dismissible fade show" role="alert">
+          {{ m }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+
+  <main class="container">
     {% block body %}{% endblock %}
+  </main>
 
-    <!-- Script: Dark Mode (with null-guards so no error if button removed) -->
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const toggleButton = document.getElementById("themeToggle");
-            const body = document.body;
-
-            const toggleDarkClass = (enabled) => {
-                const elementsToToggle = document.querySelectorAll(".card, .table, .navbar, .form-control, .form-select");
-                if (enabled) {
-                    body.classList.add("dark-mode");
-                    elementsToToggle.forEach(el => el.classList.add("dark-mode"));
-                    if (toggleButton) toggleButton.textContent = "☀️";
-                    localStorage.setItem("theme", "dark");
-                } else {
-                    body.classList.remove("dark-mode");
-                    elementsToToggle.forEach(el => el.classList.remove("dark-mode"));
-                    if (toggleButton) toggleButton.textContent = "🌙";
-                    localStorage.setItem("theme", "light");
-                }
-            };
-
-            const savedTheme = localStorage.getItem("theme");
-            if (savedTheme === "dark") toggleDarkClass(true);
-
-            if (toggleButton) {
-                toggleButton.addEventListener("click", () => {
-                    const isDark = body.classList.contains("dark-mode");
-                    toggleDarkClass(!isDark);
-                });
-            }
-        });
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  {% block javascripts %}{% endblock %}
 </body>
 </html>

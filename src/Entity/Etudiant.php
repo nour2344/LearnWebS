@@ -82,6 +82,13 @@ class Etudiant
     {
         $this->parents = new ArrayCollection();
     }
+    /** NEW: parent login identifier (e.g. "3A-7Q9K2") */
+    #[ORM\Column(length: 40, unique: true, nullable: true)]
+    private ?string $loginId = null;
+
+    /** NEW: hashed parent password (password_verify) */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $loginPasswordHash = null;
 
     // ---------- Getters/Setters ----------
 
@@ -122,4 +129,9 @@ class Etudiant
 
     public function getNomMere(): ?string { return $this->nomMere; }
     public function setNomMere(?string $v): self { $this->nomMere = $v; return $this; }
+     public function getLoginId(): ?string { return $this->loginId; }
+    public function setLoginId(?string $v): self { $this->loginId = $v; return $this; }
+
+    public function getLoginPasswordHash(): ?string { return $this->loginPasswordHash; }
+    public function setLoginPasswordHash(?string $v): self { $this->loginPasswordHash = $v; return $this; }
 }

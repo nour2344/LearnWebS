@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+{% block title %}Identité de l’établissement{% endblock %}
+
+{% block body %}
+<style>
+  .wrap{ max-width:820px; margin:40px auto; padding:0 18px; }
+  .title{ font-size:clamp(1.7rem,3.2vw,2.4rem); font-weight:800; letter-spacing:-.02em; }
+  .subtitle{ color:#64748b; margin:.35rem 0 1.2rem }
+  .card{ background:#fff; border:1px solid rgba(2,6,23,.08); border-radius:16px; box-shadow:0 12px 28px rgba(2,6,23,.06); }
+  .card-body{ padding:22px; }
+  .form-label{ font-weight:700 }
+  .form-control{ border-radius:12px; padding:.8rem .9rem }
+  .btn{ border-radius:12px; font-weight:800 }
+  .logo-preview img{ height:56px; border-radius:10px; background:#fff; padding:6px; border:1px solid rgba(2,6,23,.08) }
+</style>
+
+<div class="wrap">
+  <h1 class="title">Identité de l’établissement</h1>
+  <p class="subtitle">Ajoutez le nom et le logo. Vous serez redirigé vers l’accueil après enregistrement.</p>
+
+  <div class="card">
+    <div class="card-body">
+      {{ form_start(form, {'attr': {'enctype':'multipart/form-data'}}) }}
+
+        <div class="mb-3">
+          {{ form_label(form.name, "Nom de l’établissement", {'label_attr': {'class':'form-label'}}) }}
+          {{ form_widget(form.name, { 'attr': {'class':'form-control form-control-lg', 'placeholder':'Ex. Lycée Al Amal'} }) }}
+          {{ form_errors(form.name) }}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="{{ form.logoFile.vars.id }}">Logo</label>
+          {{ form_widget(form.logoFile, { 'attr': { 'class':'form-control', 'accept':'image/png,image/jpeg' } }) }}
+          {{ form_errors(form.logoFile) }}
+
+          {% if current_logo %}
+            <div class="logo-preview mt-3">
+              <span class="text-muted d-block mb-1">Logo actuel</span>
+              <img src="{{ asset('uploads/logos/' ~ current_logo) }}" alt="Logo actuel">
+            </div>
+          {% endif %}
+        </div>
+
+        <button class="btn btn-primary">Enregistrer et continuer</button>
+      {{ form_end(form, { render_rest:false }) }}
+    </div>
+  </div>
+</div>
+{% endblock %}

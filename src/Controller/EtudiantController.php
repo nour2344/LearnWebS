@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Controller;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 use App\Entity\Etudiant;
 use App\Form\EtudiantType;
@@ -15,11 +14,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Parameter;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 #[Route('/etudiant')]
 class EtudiantController extends AbstractController
@@ -28,12 +27,13 @@ class EtudiantController extends AbstractController
     public function index(
         Request $request,
         PaginatorInterface $paginator,
-        EtudiantRepository $repo
+        EtudiantRepository $repo,
+        CsrfTokenManagerInterface $csrf
     ): Response {
         // Filters
-        $nom       = $request->query->get('nom');
-        $prenom    = $request->query->get('prenom');
-        $classe    = $request->query->get('classe');
+        $nom    = $request->query->get('nom');
+        $prenom = $request->query->get('prenom');
+        $classe = $request->query->get('classe');
 
         // Sorting
         $sort      = $request->query->get('sort', 'nom');
@@ -51,7 +51,7 @@ class EtudiantController extends AbstractController
             $qb->andWhere('e.classe LIKE :classe')->setParameter('classe', "%$classe%");
         }
 
-        // Allow sorting by new optional fields too
+        // Allow sorting by these fields
         $allowedSort = ['nom', 'prenom', 'classe', 'dateN', 'dateInscription', 'nomPere', 'nomMere', 'numTel2'];
         if (\in_array($sort, $allowedSort, true)) {
             $qb->orderBy("e.$sort", $direction);
@@ -65,7 +65,7 @@ class EtudiantController extends AbstractController
             10
         );
 
-        // AJAX (JSON) listing like your recompense module
+        // AJAX (JSON) listing
         if ($request->isXmlHttpRequest()) {
             $today      = new DateTimeImmutable('today');
             $monthStart = new DateTimeImmutable('first day of this month 00:00:00');
@@ -81,38 +81,39 @@ class EtudiantController extends AbstractController
                     'overdueDays'   => null,
                     'dueInDays'     => null,
                 ];
+
                 if (!$paidThisMonth) {
                     if ($today > $monthEnd) {
-                        $status['overdueDays'] = (int) \ceil(($today->getTimestamp() - $monthEnd->getTimestamp()) / 86400);
+                        $status['overdueDays'] = (int)\ceil(($today->getTimestamp() - $monthEnd->getTimestamp()) / 86400);
                     } else {
-                        $status['dueInDays'] = (int) \ceil(($monthEnd->getTimestamp() - $today->getTimestamp()) / 86400);
+                        $status['dueInDays'] = (int)\ceil(($monthEnd->getTimestamp() - $today->getTimestamp()) / 86400);
                     }
                 }
-// inside the $rows[] = [...] block in the AJAX part of index():
-$rows[] = [
-    'id'              => $e->getId(),
-    'nom'             => $e->getNom(),
-    'prenom'          => $e->getPrenom(),
-    'classe'          => $e->getClasse(),
-    'dateN'           => $e->getDateN()?->format('d/m/Y'),
-    'dateInscription' => $e->getDateInscription()?->format('d/m/Y'),
-    'numTel'          => $e->getNumTel(),
-    'numTel2'         => $e->getNumTel2(),
-    'nomPere'         => $e->getNomPere(),
-    'nomMere'         => $e->getNomMere(),
-    'bulletinsVisibles'     => $e->isBulletinsVisibles(), // <—
-    'csrf_toggle_bulletins' => $this->container->get('security.csrf.token_manager')
-                                 ->getToken('toggle_bulletins_' . $e->getId())->getValue(), // <—
-    'csrf_toggle_paiement'  => $this->container->get('security.csrf.token_manager')
-                                 ->getToken('toggle_etudiant_' . $e->getId())->getValue(), // <—
-    'status' => $status,
-];
+
+                $rows[] = [
+                    'id'                    => $e->getId(),
+                    'nom'                   => $e->getNom(),
+                    'prenom'                => $e->getPrenom(),
+                    'classe'                => $e->getClasse(),
+                    'dateN'                 => $e->getDateN()?->format('d/m/Y'),
+                    'dateInscription'       => $e->getDateInscription()?->format('d/m/Y'),
+                    'numTel'                => $e->getNumTel(),
+                    'numTel2'               => $e->getNumTel2(),
+                    'nomPere'               => $e->getNomPere(),
+                    'nomMere'               => $e->getNomMere(),
+                    'bulletinsVisibles'     => $e->isBulletinsVisibles(),
+                    'csrf_toggle_bulletins' => $csrf->getToken('toggle_bulletins_' . $e->getId())->getValue(),
+                    'csrf_toggle_paiement'  => $csrf->getToken('toggle_etudiant_' . $e->getId())->getValue(),
+                    // NEW: token used by the “Identifiants” modal
+                    'csrf_creds'            => $csrf->getToken('creds_' . $e->getId())->getValue(),
+                    'status'                => $status,
+                ];
             }
 
             return $this->json([
                 'rows'     => $rows,
                 'page'     => $pagination->getCurrentPageNumber(),
-                'pages'    => (int) \ceil($pagination->getTotalItemCount() / $pagination->getItemNumberPerPage()),
+                'pages'    => (int)\ceil($pagination->getTotalItemCount() / $pagination->getItemNumberPerPage()),
                 'total'    => $pagination->getTotalItemCount(),
                 'per_page' => $pagination->getItemNumberPerPage(),
             ]);
@@ -171,52 +172,50 @@ $rows[] = [
     #[Route('/{id}', name: 'etudiant_delete', methods: ['POST'])]
     public function delete(Request $request, Etudiant $etudiant, EntityManagerInterface $em): Response
     {
-        if ($this->isCsrfTokenValid('delete' . $etudiant->getId(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete' . $etudiant->getId(), (string)$request->request->get('_token'))) {
             $em->remove($etudiant);
             $em->flush();
         }
         return $this->redirectToRoute('etudiant_index');
     }
 
-    // TOGGLE Paiement
-#[Route('/{id}/toggle-paiement', name: 'etudiant_toggle_paiement', methods: ['POST'], requirements: ['id' => '\d+'])]
-public function togglePaiement(Request $request, Etudiant $etudiant, EntityManagerInterface $em)
-{
-    if ($this->isCsrfTokenValid('toggle_etudiant_' . $etudiant->getId(), $request->request->get('_token'))) {
-        $monthStart    = new \DateTimeImmutable('first day of this month 00:00:00');
-        $paidThisMonth = $etudiant->getDernierPaiement() && $etudiant->getDernierPaiement() >= $monthStart;
-        $etudiant->setDernierPaiement($paidThisMonth ? null : new \DateTime());
+    #[Route('/{id}/toggle-paiement', name: 'etudiant_toggle_paiement', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function togglePaiement(Request $request, Etudiant $etudiant, EntityManagerInterface $em): Response
+    {
+        if ($this->isCsrfTokenValid('toggle_etudiant_' . $etudiant->getId(), (string)$request->request->get('_token'))) {
+            $monthStart    = new \DateTimeImmutable('first day of this month 00:00:00');
+            $paidThisMonth = $etudiant->getDernierPaiement() && $etudiant->getDernierPaiement() >= $monthStart;
+            $etudiant->setDernierPaiement($paidThisMonth ? null : new \DateTime());
+            $em->flush();
+        }
+
+        if ($request->isXmlHttpRequest()) {
+            return new JsonResponse(['ok' => true]);
+        }
+
+        $referer = $request->headers->get('referer') ?? $this->generateUrl('etudiant_index');
+        return $this->redirect($referer);
+    }
+
+    #[Route('/{id}/toggle-bulletins', name: 'etudiant_toggle_bulletins', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function toggleBulletins(Request $request, Etudiant $etudiant, EntityManagerInterface $em): Response
+    {
+        // Keep CSRF aligned with your JS (it posts _token)
+        if ($request->isXmlHttpRequest() &&
+            !$this->isCsrfTokenValid('toggle_bulletins_' . $etudiant->getId(), (string)$request->request->get('_token'))) {
+            return new JsonResponse(['ok' => false, 'error' => 'csrf'], 400);
+        }
+
+        $etudiant->setBulletinsVisibles(!$etudiant->isBulletinsVisibles());
         $em->flush();
+
+        if ($request->isXmlHttpRequest()) {
+            return new JsonResponse(['ok' => true, 'visible' => $etudiant->isBulletinsVisibles()]);
+        }
+
+        $this->addFlash('success', 'Visibilité des bulletins mise à jour !');
+        return $this->redirectToRoute('etudiant_index');
     }
-
-    // If called via AJAX, don’t redirect
-    if ($request->isXmlHttpRequest()) {
-        return new JsonResponse(['ok' => true]);
-    }
-
-    $referer = $request->headers->get('referer') ?? $this->generateUrl('etudiant_index');
-    return $this->redirect($referer);
-}
-
-// TOGGLE Bulletins
-#[Route('/{id}/toggle-bulletins', name: 'etudiant_toggle_bulletins', methods: ['POST'], requirements: ['id' => '\d+'])]
-public function toggleBulletins(Request $request, Etudiant $etudiant, EntityManagerInterface $em): Response
-{
-    // Optional CSRF check if you want:
-    // if (!$this->isCsrfTokenValid('toggle_bulletins_' . $etudiant->getId(), $request->request->get('_token'))) {
-    //     return new JsonResponse(['ok' => false], 400);
-    // }
-
-    $etudiant->setBulletinsVisibles(!$etudiant->isBulletinsVisibles());
-    $em->flush();
-
-    if ($request->isXmlHttpRequest()) {
-        return new JsonResponse(['ok' => true, 'visible' => $etudiant->isBulletinsVisibles()]);
-    }
-
-    $this->addFlash('success', 'Visibilité des bulletins mise à jour !');
-    return $this->redirectToRoute('etudiant_index');
-}
 
     #[Route('/{id}/fiche', name: 'etudiant_fiche', methods: ['GET'])]
     public function fiche(Etudiant $etudiant, PaiementRepository $paiementRepo): Response
@@ -285,93 +284,130 @@ public function toggleBulletins(Request $request, Etudiant $etudiant, EntityMana
         ]);
     }
 
-   
     #[Route('/bulk-bulletins', name: 'etudiant_bulk_bulletins', methods: ['POST'])]
-public function bulkBulletins(
-    Request $request,
-    EtudiantRepository $repo,
-    EntityManagerInterface $em
-): JsonResponse {
-    // CSRF
-    $token = (string)$request->request->get('_token', '');
-    if (!$this->isCsrfTokenValid('bulk_bulletins', $token)) {
-        return new JsonResponse(['ok' => false, 'error' => 'csrf'], 400);
-    }
-
-    // visible=1 => Afficher, 0 => Masquer
-    $visible = $request->request->get('visible', null);
-    if ($visible === null || !in_array((string)$visible, ['0','1'], true)) {
-        return new JsonResponse(['ok' => false, 'error' => 'param'], 400);
-    }
-    $visibleBool = $visible === '1';
-
-    // take the same filters as your AJAX search
-    $nom    = trim((string)$request->request->get('nom', ''));
-    $prenom = trim((string)$request->request->get('prenom', ''));
-    $classe = trim((string)$request->request->get('classe', ''));
-
-    $qb = $repo->createQueryBuilder('e');
-    if ($nom !== '')    { $qb->andWhere('e.nom LIKE :nom')->setParameter('nom', "%$nom%"); }
-    if ($prenom !== '') { $qb->andWhere('e.prenom LIKE :prenom')->setParameter('prenom', "%$prenom%"); }
-    if ($classe !== '') { $qb->andWhere('e.classe LIKE :classe')->setParameter('classe', "%$classe%"); }
-
-    $students = $qb->getQuery()->getResult();
-
-    $count = 0;
-    foreach ($students as $e) {
-        /** @var \App\Entity\Etudiant $e */
-        if ($e->isBulletinsVisibles() !== $visibleBool) {
-            $e->setBulletinsVisibles($visibleBool);
-            $count++;
+    public function bulkBulletins(
+        Request $request,
+        EtudiantRepository $repo,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        // CSRF
+        $token = (string)$request->request->get('_token', '');
+        if (!$this->isCsrfTokenValid('bulk_bulletins', $token)) {
+            return new JsonResponse(['ok' => false, 'error' => 'csrf'], 400);
         }
-    }
-    if ($count > 0) { $em->flush(); }
 
-    return new JsonResponse(['ok' => true, 'updated' => $count]);
-}
+        // visible=1 => Afficher, 0 => Masquer
+        $visible = $request->request->get('visible', null);
+        if ($visible === null || !in_array((string)$visible, ['0','1'], true)) {
+            return new JsonResponse(['ok' => false, 'error' => 'param'], 400);
+        }
+        $visibleBool = $visible === '1';
 
-#[Route('/api/etudiants/suggest', name: 'etudiant_suggest', methods: ['GET'])]
-#[IsGranted('PUBLIC_ACCESS')]
+        // Same filters as AJAX search
+        $nom    = trim((string)$request->request->get('nom', ''));
+        $prenom = trim((string)$request->request->get('prenom', ''));
+        $classe = trim((string)$request->request->get('classe', ''));
 
-public function suggest(Request $request, EntityManagerInterface $em): JsonResponse
-{
-    $classe = trim((string) $request->query->get('classe', ''));
-    $q      = trim((string) $request->query->get('q', ''));
+        $qb = $repo->createQueryBuilder('e');
+        if ($nom !== '')    { $qb->andWhere('e.nom LIKE :nom')->setParameter('nom', "%$nom%"); }
+        if ($prenom !== '') { $qb->andWhere('e.prenom LIKE :prenom')->setParameter('prenom', "%$prenom%"); }
+        if ($classe !== '') { $qb->andWhere('e.classe LIKE :classe')->setParameter('classe', "%$classe%"); }
 
-    if ($classe === '' || mb_strlen($q) < 2) {
-        return new JsonResponse([], 200);
-    }
+        $students = $qb->getQuery()->getResult();
 
-    $qb = $em->createQueryBuilder()
-        ->select('e.id, e.nom, e.prenom, e.classe')
-        ->from(Etudiant::class, 'e')
-        ->where('LOWER(e.classe) = LOWER(:classe) OR LOWER(e.classe) LIKE LOWER(:classeLike)')
-        ->andWhere('(LOWER(e.nom) LIKE LOWER(:q) OR LOWER(e.prenom) LIKE LOWER(:q))')
-        ->setParameter('classe', $classe)
-        ->setParameter('classeLike', '%'.$classe.'%')
-        ->setParameter('q', $q.'%')
-        ->orderBy('e.nom', 'ASC')
-        ->setMaxResults(20);
+        $count = 0;
+        foreach ($students as $e) {
+            /** @var Etudiant $e */
+            if ($e->isBulletinsVisibles() !== $visibleBool) {
+                $e->setBulletinsVisibles($visibleBool);
+                $count++;
+            }
+        }
+        if ($count > 0) {
+            $em->flush();
+        }
 
-    return new JsonResponse($qb->getQuery()->getArrayResult(), 200);
-}
-#[Route('/api/etudiants/by-classe', name: 'etudiant_by_classe', methods: ['GET'])]
-#[IsGranted('PUBLIC_ACCESS')]
-
-public function apiByClasse(Request $request, EtudiantRepository $repo): JsonResponse
-{
-    $classe = trim((string) $request->query->get('classe', ''));
-    if ($classe === '') {
-        return $this->json([]);
+        return new JsonResponse(['ok' => true, 'updated' => $count]);
     }
 
-    $rows = $repo->createQueryBuilder('e')
-        ->select('e.id, e.nom, e.prenom')
-        ->where('e.classe = :c')->setParameter('c', $classe)
-        ->orderBy('e.nom', 'ASC')
-        ->addOrderBy('e.prenom', 'ASC')
-        ->getQuery()->getArrayResult();
+    #[Route('/api/etudiants/suggest', name: 'etudiant_suggest', methods: ['GET'])]
+    public function suggest(Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $classe = trim((string)$request->query->get('classe', ''));
+        $q      = trim((string)$request->query->get('q', ''));
 
-    return $this->json($rows);
-}
+        if ($classe === '' || mb_strlen($q) < 2) {
+            return new JsonResponse([], 200);
+        }
+
+        $qb = $em->createQueryBuilder()
+            ->select('e.id, e.nom, e.prenom, e.classe')
+            ->from(Etudiant::class, 'e')
+            ->where('LOWER(e.classe) = LOWER(:classe) OR LOWER(e.classe) LIKE LOWER(:classeLike)')
+            ->andWhere('(LOWER(e.nom) LIKE LOWER(:q) OR LOWER(e.prenom) LIKE LOWER(:q))')
+            ->setParameter('classe', $classe)
+            ->setParameter('classeLike', '%' . $classe . '%')
+            ->setParameter('q', $q . '%')
+            ->orderBy('e.nom', 'ASC')
+            ->setMaxResults(20);
+
+        return new JsonResponse($qb->getQuery()->getArrayResult(), 200);
+    }
+
+    #[Route('/api/etudiants/by-classe', name: 'etudiant_by_classe', methods: ['GET'])]
+    public function apiByClasse(Request $request, EtudiantRepository $repo): JsonResponse
+    {
+        $classe = trim((string)$request->query->get('classe', ''));
+        if ($classe === '') {
+            return $this->json([]);
+        }
+
+        $rows = $repo->createQueryBuilder('e')
+            ->select('e.id, e.nom, e.prenom')
+            ->where('e.classe = :c')->setParameter('c', $classe)
+            ->orderBy('e.nom', 'ASC')
+            ->addOrderBy('e.prenom', 'ASC')
+            ->getQuery()->getArrayResult();
+
+        return $this->json($rows);
+    }
+
+    #[Route('/{id}/creds', name: 'etudiant_creds', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function creds(Request $request, Etudiant $etudiant, EntityManagerInterface $em): JsonResponse
+    {
+        $token = (string) $request->request->get('_token', '');
+        if (!$this->isCsrfTokenValid('creds_' . $etudiant->getId(), $token)) {
+            return new JsonResponse(['ok' => false], 400);
+        }
+
+        $regen = (string) $request->request->get('regen', '0') === '1';
+
+        $changed = false;
+
+        // Ensure loginId exists
+        if (!$etudiant->getLoginId()) {
+            // example: class + random 5 chars (adapt to your rule)
+            $id = preg_replace('/\W+/', '', (string)$etudiant->getClasse()) . '-' . substr(bin2hex(random_bytes(3)), 0, 5);
+            $etudiant->setLoginId($id);
+            $changed = true;
+        }
+
+        $plain = null;
+
+        if ($regen || !$etudiant->getLoginPasswordHash()) {
+            // generate a new simple password e.g. 8–10 chars
+            $plain = substr(bin2hex(random_bytes(8)), 0, 10);
+            $etudiant->setLoginPasswordHash(password_hash($plain, PASSWORD_BCRYPT));
+            $changed = true;
+        }
+
+        if ($changed) {
+            $em->flush();
+        }
+
+        return new JsonResponse([
+            'loginId'  => (string) $etudiant->getLoginId(),
+            'password' => $plain, // null when not regenerated
+        ]);
+    }
 }

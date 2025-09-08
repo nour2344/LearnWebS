@@ -1,7 +1,7 @@
 {# templates/security/login.html.twig #}
 {% extends 'base.html.twig' %}
 
-{% block title %}Log in!{% endblock %}
+{% block title %}Se connecter{% endblock %}
 
 {% block body %}
 <style>
@@ -10,12 +10,7 @@
   .nav-tabs .nav-link { border: 0; color: #6b7280; font-weight: 600; }
   .nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; }
   .form-label { font-weight: 600; }
-  .divider { height: 1px; background: #eef0f2; margin: 1rem 0 1.25rem; }
-
-  .autocomplete-wrap { position: relative; }
-  #childList { max-height: 260px; overflow-y: auto; z-index: 20; }
-
-  .sr-only-like { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  .btn-eye { width: 46px; }
 </style>
 
 <div class="reg-wrap mt-5 mb-5">
@@ -24,7 +19,7 @@
   {% for label, messages in app.flashes %}
     {% for m in messages %}
       <div class="alert alert-{{ label == 'danger' ? 'danger' : (label == 'success' ? 'success' : 'info') }} alert-dismissible fade show" role="alert">
-        {{ m }}
+        {{ m|raw }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
     {% endfor %}
@@ -40,7 +35,7 @@
     <li class="nav-item" role="presentation">
       <button class="nav-link {{ show_parent is defined ? 'active' : '' }}" id="parent-tab" data-bs-toggle="tab" data-bs-target="#parent"
               type="button" role="tab" aria-controls="parent" aria-selected="{{ show_parent is defined ? 'true' : 'false' }}">
-        Parent (sans mot de passe)
+        Parent (identifiant + mot de passe)
       </button>
     </li>
   </ul>
@@ -58,12 +53,12 @@
 
           {% if app.user %}
             <div class="mb-3">
-              You are logged in as {{ app.user.userIdentifier }},
+              Vous êtes connecté en tant que {{ app.user.userIdentifier }},
               <a href="{{ path('app_logout') }}">Logout</a>
             </div>
           {% endif %}
 
-          <h1 class="h3 mb-3">Admin – Please sign in</h1>
+          <h1 class="h4 mb-3">Connexion administrateur</h1>
 
           <label for="inputEmail" class="form-label">Email</label>
           <input
@@ -72,12 +67,12 @@
             name="email"
             id="inputEmail"
             class="form-control"
-            autocomplete="email"
+            autocomplete="username"
             required
             autofocus
           >
 
-          <label for="inputPassword" class="form-label mt-2">Password</label>
+          <label for="inputPassword" class="form-label mt-3">Mot de passe</label>
           <input
             type="password"
             name="password"
@@ -89,84 +84,62 @@
 
           <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
 
-          <div class="form-check mt-2">
+          <div class="form-check mt-3">
             <input type="checkbox" class="form-check-input" id="remember_me" name="_remember_me">
-            <label for="remember_me" class="form-check-label">Remember me</label>
+            <label for="remember_me" class="form-check-label">Se souvenir de moi</label>
           </div>
 
-          <button class="btn btn-primary mt-3" type="submit">Sign in</button>
+          <button class="btn btn-primary mt-3" type="submit">Se connecter</button>
         </form>
 
       </div>
     </div>
 
-    {# ====================== PARENT (OTP) ====================== #}
+    {# ====================== PARENT (IDENTIFIANT + PASSWORD) ====================== #}
     <div class="tab-pane fade {{ show_parent is defined ? 'show active' : '' }}" id="parent" role="tabpanel" aria-labelledby="parent-tab">
       <div class="card reg-card p-4 p-md-5">
+        <form method="post" action="{{ path('parent_id_login') }}">
+          <h1 class="h4 mb-3">Connexion parent</h1>
 
-        <form method="post" action="{{ path('parent_request_code') }}" novalidate>
-          <h5 class="mb-3">Identification du parent</h5>
-          <div class="row g-4">
-            <div class="col-md-6">
-              <label class="form-label" for="fullname">Votre nom complet (père ou mère)</label>
-              <input class="form-control" id="fullname" name="fullname" placeholder="ex. Nom du père OU de la mère" required
-                     value="{{ otp_data.name|default('') }}">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label" for="phone">Téléphone (n°1 ou n°2)</label>
-              <input class="form-control" id="phone" name="phone" placeholder="ex. 22123456" required
-                     value="{{ otp_data.phone|default('') }}">
-            </div>
+          <label class="form-label" for="identifiant">Identifiant élève</label>
+          <input
+            class="form-control"
+            id="identifiant"
+            name="identifiant"
+            placeholder="ex. 3A-7F9C2B"
+            autocomplete="username"
+            required
+          >
+
+          <label class="form-label mt-3" for="pwd_parent">Mot de passe</label>
+          <div class="input-group">
+            <input
+              class="form-control"
+              id="pwd_parent"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            >
+            <button class="btn btn-outline-secondary btn-eye" type="button" id="toggleParentPwd" aria-label="Afficher/Cacher">👁</button>
           </div>
 
-          <div class="divider"></div>
+          {# 🔐 Must match CsrfTokenBadge id in ParentIdAuthenticator #}
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('parent_id_login') }}">
 
-          <h5 class="mb-3">Enfant</h5>
-          <div class="row g-4 align-items-end">
-            <div class="col-md-4">
-              <label for="classeSelect" class="form-label">Classe</label>
-              <select id="classeSelect" name="classe" class="form-select" required>
-                <option value="">— choisir une classe —</option>
-                {% for c in classes %}
-                  <option value="{{ c }}" {{ (otp_data.classe|default('')) == c ? 'selected' : '' }}>{{ c }}</option>
-                {% endfor %}
-              </select>
-              <input type="hidden" name="classeSelect" id="classeHidden">
-            </div>
-
-            <div class="col-md-8 autocomplete-wrap">
-              <label for="childInput" class="form-label">Votre enfant</label>
-              <input id="childInput" class="form-control" placeholder="Tapez le nom de votre enfant" {{ (otp_data.child_id|default(null)) ? '' : 'disabled' }}>
-              <div id="childList" class="list-group position-absolute w-100"></div>
-              <div class="form-text">Cherchez puis cliquez pour sélectionner votre enfant dans la classe choisie.</div>
-            </div>
+          <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" id="remember_parent" name="_remember_me">
+            <label class="form-check-label" for="remember_parent">Se souvenir de moi</label>
           </div>
 
-          <div class="sr-only-like">
-            <select id="parent_child_hidden" name="child">
-              {% if otp_data.child_id is defined %}
-                <option value="{{ otp_data.child_id }}" selected></option>
-              {% endif %}
-            </select>
-          </div>
-
-          <button class="btn btn-success mt-3">Recevoir le code SMS</button>
+          <button class="btn btn-success mt-3">Se connecter</button>
         </form>
 
-        {% if otp_pending %}
-          <div class="divider"></div>
-          <form method="post" action="{{ path('parent_verify_code') }}">
-            <h5 class="mb-3">Vérification par code SMS</h5>
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label" for="otp">Code reçu par SMS</label>
-                <input class="form-control" id="otp" name="otp" placeholder="ex. 123456" required>
-              </div>
-            </div>
-            <button class="btn btn-primary mt-3">Valider</button>
-          </form>
-        {% endif %}
-
+        <div class="alert alert-info mt-3 mb-0">
+          <strong>Astuce :</strong> L’identifiant est fourni par l’administration (classe + code unique).
+          Le mot de passe est propre à chaque élève.
+        </div>
       </div>
     </div>
 
@@ -174,83 +147,15 @@
 </div>
 
 <script>
-(function () {
-  const classeSelect = document.getElementById('classeSelect');
-  const classeHidden = document.getElementById('classeHidden');
-  const childInput   = document.getElementById('childInput');
-  const childList    = document.getElementById('childList');
-  const hiddenChild  = document.getElementById('parent_child_hidden');
-
-  function syncClasseHidden() { if (classeHidden) classeHidden.value = classeSelect?.value || ''; }
-  function resetChildInput(disable = true) {
-    if (childInput) { childInput.value = ''; childInput.disabled = disable; }
-    if (hiddenChild) hiddenChild.innerHTML = '';
-    if (childList) childList.innerHTML = '';
-  }
-
-  if (classeSelect) {
-    const onClassChange = () => { syncClasseHidden(); resetChildInput(!classeSelect.value); };
-    classeSelect.addEventListener('change', onClassChange);
-    onClassChange();
-  }
-
-  document.addEventListener('click', (e) => {
-    if (!childList) return;
-    const inside = (e.target === childInput) || childList.contains(e.target);
-    if (!inside) childList.innerHTML = '';
-  });
-
-  let lastController = null;
-  if (childInput) {
-    childInput.addEventListener('input', async () => {
-      const classe = classeSelect?.value;
-      const q = childInput.value.trim();
-
-      if (!classe || q.length < 2) {
-        if (childList) childList.innerHTML = '';
-        if (hiddenChild) hiddenChild.innerHTML = '';
-        return;
-      }
-
-      if (lastController) lastController.abort();
-      lastController = new AbortController();
-
-      try {
-        // IMPORTANT: this calls the public JSON route defined above
-        const url = '{{ path("etudiant_suggest") }}' + '?' + new URLSearchParams({ classe, q });
-        const resp = await fetch(url, {
-          headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-          signal: lastController.signal
-        });
-
-        if (!resp.ok || resp.headers.get('content-type')?.includes('text/html')) {
-          if (childList) childList.innerHTML = '';
-          return;
-        }
-
-        const data = await resp.json();
-
-        if (!Array.isArray(data) || !childList) return;
-        childList.innerHTML = '';
-        if (data.length === 0) return;
-
-        if (hiddenChild) hiddenChild.innerHTML = '';
-
-        data.forEach(s => {
-          const item = document.createElement('button');
-          item.type = 'button';
-          item.className = 'list-group-item list-group-item-action';
-          item.textContent = `${s.nom} ${s.prenom}`;
-          item.onclick = () => {
-            if (childInput) childInput.value = `${s.nom} ${s.prenom}`;
-            if (hiddenChild) hiddenChild.innerHTML = `<option value="${s.id}" selected></option>`;
-            childList.innerHTML = '';
-          };
-          childList.appendChild(item);
-        });
-      } catch (_) {}
-    });
-  }
-})();
+  // simple show/hide for parent password
+  (function () {
+    const btn = document.getElementById('toggleParentPwd');
+    const inp = document.getElementById('pwd_parent');
+    if (btn && inp) {
+      btn.addEventListener('click', () => {
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+      });
+    }
+  })();
 </script>
 {% endblock %}
