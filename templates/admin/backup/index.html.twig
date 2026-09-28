@@ -1,0 +1,88 @@
+{% extends 'base.html.twig' %}
+{% block title %}Sauvegarde & Restauration{% endblock %}
+
+{% block body %}
+<div class="container py-4" style="max-width: 780px">
+  <h1 class="mb-3">🗄️ Sauvegarde & Restauration</h1>
+
+  {# flashes #}
+  {% for label, messages in app.flashes %}
+    {% for m in messages %}
+      <div class="alert alert-{{ label == 'danger' ? 'danger' : (label == 'success' ? 'success' : 'info') }} alert-dismissible fade show">
+        {{ m }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endfor %}
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Infos base de données</h5>
+      <ul class="mb-0">
+        <li><strong>Driver :</strong> {{ db.driver }}</li>
+        {% if db.driver == 'pdo_sqlite' %}
+          <li><strong>Fichier :</strong> {{ db.path ?? 'var/data.db' }}</li>
+          {% if sqliteSize is not null %}
+            <li><strong>Taille :</strong> {{ (sqliteSize / 1024 / 1024)|number_format(2, '.', ' ') }} Mo</li>
+          {% endif %}
+        {% else %}
+          <li><strong>Nom :</strong> {{ db.dbname }}</li>
+          <li><strong>Hôte :</strong> {{ db.host }}{% if db.port %}:{{ db.port }}{% endif %}</li>
+          <li><strong>Utilisateur :</strong> {{ db.user }}</li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">Créer une sauvegarde</h5>
+          <p class="text-muted">
+            {% if db.driver == 'pdo_sqlite' %}
+              Télécharge une copie du fichier SQLite.
+            {% else %}
+              Exécute <code>mysqldump</code> et télécharge un fichier <code>.sql</code>.
+            {% endif %}
+          </p>
+          <form method="post" action="{{ path('admin_backup_dump') }}" class="mt-auto">
+            <input type="hidden" name="_token" value="{{ csrf_token('backup_dump') }}">
+            <button class="btn btn-primary w-100">📥 Télécharger la sauvegarde</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">Restaurer une sauvegarde</h5>
+          <p class="text-muted">
+            ⚠️ Remplace TOUTES les données par le contenu du fichier choisi.
+            {% if db.driver == 'pdo_sqlite' %}
+              Utilisez un fichier <code>.db</code>.
+            {% else %}
+              Utilisez un fichier <code>.sql</code> généré par mysqldump.
+            {% endif %}
+          </p>
+          <form method="post" action="{{ path('admin_backup_restore') }}" enctype="multipart/form-data" class="mt-auto">
+            <input type="hidden" name="_token" value="{{ csrf_token('backup_restore') }}">
+            <div class="mb-2">
+              <input class="form-control" type="file" name="backup_file" required
+                {% if db.driver == 'pdo_sqlite' %}accept=".db"{% else %}accept=".sql"{% endif %}>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Tapez <code>RESTORE</code> pour confirmer</label>
+              <input class="form-control" name="confirm" placeholder="RESTORE" required>
+            </div>
+            <button class="btn btn-danger w-100">♻️ Restaurer</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <a href="{{ path('home') }}" class="btn btn-link mt-3">← Retour</a>
+</div>
+{% endblock %}

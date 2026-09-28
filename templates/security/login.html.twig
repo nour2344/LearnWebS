@@ -27,14 +27,14 @@
 
   <ul class="nav nav-tabs justify-content-center mb-4" role="tablist">
     <li class="nav-item" role="presentation">
-      <button class="nav-link {{ show_parent is not defined ? 'active' : '' }}" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin"
-              type="button" role="tab" aria-controls="admin" aria-selected="{{ show_parent is not defined ? 'true' : 'false' }}">
+      <button class="nav-link {{ not show_parent ? 'active' : '' }}" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin"
+              type="button" role="tab" aria-controls="admin" aria-selected="{{ not show_parent ? 'true' : 'false' }}">
         Admin (email + mot de passe)
       </button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link {{ show_parent is defined ? 'active' : '' }}" id="parent-tab" data-bs-toggle="tab" data-bs-target="#parent"
-              type="button" role="tab" aria-controls="parent" aria-selected="{{ show_parent is defined ? 'true' : 'false' }}">
+      <button class="nav-link {{ show_parent ? 'active' : '' }}" id="parent-tab" data-bs-toggle="tab" data-bs-target="#parent"
+              type="button" role="tab" aria-controls="parent" aria-selected="{{ show_parent ? 'true' : 'false' }}">
         Parent (identifiant + mot de passe)
       </button>
     </li>
@@ -43,7 +43,7 @@
   <div class="tab-content">
 
     {# ====================== ADMIN ====================== #}
-    <div class="tab-pane fade {{ show_parent is not defined ? 'show active' : '' }}" id="admin" role="tabpanel" aria-labelledby="admin-tab">
+    <div class="tab-pane fade {{ not show_parent ? 'show active' : '' }}" id="admin" role="tabpanel" aria-labelledby="admin-tab">
       <div class="card reg-card p-4 p-md-5">
 
         <form method="post" action="{{ path('app_login') }}">
@@ -96,7 +96,7 @@
     </div>
 
     {# ====================== PARENT (IDENTIFIANT + PASSWORD) ====================== #}
-    <div class="tab-pane fade {{ show_parent is defined ? 'show active' : '' }}" id="parent" role="tabpanel" aria-labelledby="parent-tab">
+    <div class="tab-pane fade {{ show_parent ? 'show active' : '' }}" id="parent" role="tabpanel" aria-labelledby="parent-tab">
       <div class="card reg-card p-4 p-md-5">
         <form method="post" action="{{ path('parent_id_login') }}">
           <h1 class="h4 mb-3">Connexion parent</h1>

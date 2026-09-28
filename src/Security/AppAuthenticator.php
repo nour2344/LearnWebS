@@ -14,40 +14,41 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\PasswordCredentials;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
-use Symfony\Component\Security\Http\Util\TargetPathTrait;
 
-/**
- * Admin authenticator (email + password).
- * NOTE: the ParentStudentUser / $userBadge snippet belongs in ParentIdAuthenticator,
- * not in this class.
- */
 class AppAuthenticator extends AbstractLoginFormAuthenticator
 {
-    use TargetPathTrait;
-
     public const LOGIN_ROUTE = 'app_login';
 
-    public function __construct(private UrlGeneratorInterface $urlGenerator) {}
+    public function __construct(
+        private UrlGeneratorInterface $urlGenerator
+    ) {
+    }
 
     public function authenticate(Request $request): Passport
     {
         if ('json' === $request->getContentTypeFormat()) {
-            $data     = $request->toArray();
-            $email    = (string) ($data['email'] ?? '');
+            $data = $request->toArray();
+
+            $email = trim((string) ($data['email'] ?? ''));
             $password = (string) ($data['password'] ?? '');
-            $csrf     = (string) ($data['_csrf_token'] ?? '');
+            $csrf = (string) ($data['_csrf_token'] ?? '');
             $remember = !empty($data['_remember_me']);
         } else {
-            $email    = (string) $request->request->get('email', '');
+            $email = trim((string) $request->request->get('email', ''));
             $password = (string) $request->request->get('password', '');
-            $csrf     = (string) $request->request->get('_csrf_token', '');
+            $csrf = (string) $request->request->get('_csrf_token', '');
             $remember = (bool) $request->request->get('_remember_me', false);
         }
 
-        // remember last username for the login form
-        $request->getSession()->set(SecurityRequestAttributes::LAST_USERNAME, $email);
+        $request->getSession()->set(
+            SecurityRequestAttributes::LAST_USERNAME,
+            $email
+        );
 
-        $badges = [new CsrfTokenBadge('authenticate', $csrf)];
+        $badges = [
+            new CsrfTokenBadge('authenticate', $csrf),
+        ];
+
         if ($remember) {
             $badges[] = new RememberMeBadge();
         }
@@ -65,27 +66,28 @@ class AppAuthenticator extends AbstractLoginFormAuthenticator
         string $firewallName
     ): ?Response {
         $roles = $token->getRoleNames();
-        $targetPath = $this->getTargetPath($request->getSession(), $firewallName);
-        $path = $targetPath ? (parse_url($targetPath, \PHP_URL_PATH) ?? '') : '';
 
-        // Parents (in case a parent logs via this firewall)
-        if (\in_array('ROLE_PARENT', $roles, true)) {
-            if ($targetPath && str_starts_with($path, '/parent')) {
-                return new RedirectResponse($targetPath);
-            }
-            return new RedirectResponse($this->urlGenerator->generate('parent_home'));
+        // Admin / Super Admin
+        if (
+            \in_array('ROLE_ADMIN', $roles, true)
+            || \in_array('ROLE_SUPER_ADMIN', $roles, true)
+        ) {
+           return new RedirectResponse(
+    $this->urlGenerator->generate('home')
+);
         }
 
-        // Admins
-        if (\in_array('ROLE_ADMIN', $roles, true) || \in_array('ROLE_SUPER_ADMIN', $roles, true)) {
-            if ($targetPath && $path && !\preg_match('#^/admin/?$#', $path)) {
-                return new RedirectResponse($targetPath);
-            }
-            return new RedirectResponse($this->urlGenerator->generate('home'));
+        // Parent
+        if (\in_array('ROLE_PARENT', $roles, true)) {
+            return new RedirectResponse(
+                $this->urlGenerator->generate('parent_home')
+            );
         }
 
         // Fallback
-        return new RedirectResponse($this->urlGenerator->generate('home'));
+        return new RedirectResponse(
+            $this->urlGenerator->generate('home')
+        );
     }
 
     protected function getLoginUrl(Request $request): string

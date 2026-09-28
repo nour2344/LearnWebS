@@ -69,7 +69,7 @@ security:
     # ---------- Parent area ----------
     - { path: ^/api/parent/chat$,          roles: ROLE_PARENT }
     - { path: ^/api/parent/chat/feedback$, roles: ROLE_PARENT }
-    - { path: ^/parent,                    roles: ROLE_PARENT }
+    - { path: ^/parent,                    roles: PUBLIC_ACCESS }   
 
     # ---------- Admin area ----------
     - { path: ^/admin, allow_if: "is_granted('ROLE_ADMIN') or (is_granted('ROLE_STAFF') and user and user.isStaffApproved())" }
