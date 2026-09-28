@@ -5,62 +5,154 @@
 
 {% block body %}
 <style>
-  .reg-wrap { max-width: 980px; margin: 0 auto; }
-  .reg-card { border: 0; border-radius: 16px; box-shadow: 0 8px 22px rgba(0,0,0,.06); }
-  .nav-tabs .nav-link { border: 0; color: #6b7280; font-weight: 600; }
-  .nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; }
-  .form-label { font-weight: 600; }
-  .btn-eye { width: 46px; }
+  .reg-wrap {
+    max-width: 980px;
+    margin: 0 auto;
+  }
+
+  .reg-card {
+    border: 0;
+    border-radius: 16px;
+    box-shadow: 0 8px 22px rgba(0,0,0,.06);
+  }
+
+  .nav-tabs .nav-link {
+    border: 0;
+    color: #6b7280;
+    font-weight: 600;
+  }
+
+  .nav-tabs .nav-link.active {
+    color: #0d6efd;
+    border-bottom: 3px solid #0d6efd;
+  }
+
+  .form-label {
+    font-weight: 600;
+  }
+
+  .btn-eye {
+    width: 46px;
+  }
 </style>
 
 <div class="reg-wrap mt-5 mb-5">
 
-  {# flash messages #}
+  {# Flash messages #}
   {% for label, messages in app.flashes %}
     {% for m in messages %}
-      <div class="alert alert-{{ label == 'danger' ? 'danger' : (label == 'success' ? 'success' : 'info') }} alert-dismissible fade show" role="alert">
+      <div
+        class="alert alert-{{ label == 'danger' ? 'danger' : (label == 'success' ? 'success' : 'info') }} alert-dismissible fade show"
+        role="alert"
+      >
         {{ m|raw }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
       </div>
     {% endfor %}
   {% endfor %}
 
-  <ul class="nav nav-tabs justify-content-center mb-4" role="tablist">
-    <li class="nav-item" role="presentation">
-      <button class="nav-link {{ not show_parent ? 'active' : '' }}" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin"
-              type="button" role="tab" aria-controls="admin" aria-selected="{{ not show_parent ? 'true' : 'false' }}">
+
+  {# ====================== LOGIN TABS ====================== #}
+
+  <ul
+    class="nav nav-tabs justify-content-center mb-4"
+    role="tablist"
+  >
+
+    <li
+      class="nav-item"
+      role="presentation"
+    >
+      <button
+        class="nav-link {{ not show_parent ? 'active' : '' }}"
+        id="admin-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#admin"
+        type="button"
+        role="tab"
+        aria-controls="admin"
+        aria-selected="{{ not show_parent ? 'true' : 'false' }}"
+      >
         Admin (email + mot de passe)
       </button>
     </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link {{ show_parent ? 'active' : '' }}" id="parent-tab" data-bs-toggle="tab" data-bs-target="#parent"
-              type="button" role="tab" aria-controls="parent" aria-selected="{{ show_parent ? 'true' : 'false' }}">
+
+
+    <li
+      class="nav-item"
+      role="presentation"
+    >
+      <button
+        class="nav-link {{ show_parent ? 'active' : '' }}"
+        id="parent-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#parent"
+        type="button"
+        role="tab"
+        aria-controls="parent"
+        aria-selected="{{ show_parent ? 'true' : 'false' }}"
+      >
         Parent (identifiant + mot de passe)
       </button>
     </li>
+
   </ul>
+
 
   <div class="tab-content">
 
     {# ====================== ADMIN ====================== #}
-    <div class="tab-pane fade {{ not show_parent ? 'show active' : '' }}" id="admin" role="tabpanel" aria-labelledby="admin-tab">
+
+    <div
+      class="tab-pane fade {{ not show_parent ? 'show active' : '' }}"
+      id="admin"
+      role="tabpanel"
+      aria-labelledby="admin-tab"
+    >
+
       <div class="card reg-card p-4 p-md-5">
 
-        <form method="post" action="{{ path('app_login') }}">
-          {% if error is defined and error %}
-            <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
-          {% endif %}
+        <form
+          method="post"
+          action="{{ path('app_login') }}"
+        >
 
-          {% if app.user %}
-            <div class="mb-3">
-              Vous êtes connecté en tant que {{ app.user.userIdentifier }},
-              <a href="{{ path('app_logout') }}">Logout</a>
+          {% if error is defined and error %}
+            <div class="alert alert-danger">
+              {{ error.messageKey|trans(error.messageData, 'security') }}
             </div>
           {% endif %}
 
-          <h1 class="h4 mb-3">Connexion administrateur</h1>
 
-          <label for="inputEmail" class="form-label">Email</label>
+          {% if app.user %}
+            <div class="mb-3">
+              Vous êtes connecté en tant que
+              {{ app.user.userIdentifier }},
+              <a href="{{ path('app_logout') }}">
+                Logout
+              </a>
+            </div>
+          {% endif %}
+
+
+          <h1 class="h4 mb-3">
+            Connexion administrateur
+          </h1>
+
+
+          <label
+            for="inputEmail"
+            class="form-label"
+          >
+            Email
+          </label>
+
           <input
             type="email"
             value="{{ last_username is defined ? last_username : '' }}"
@@ -72,7 +164,14 @@
             autofocus
           >
 
-          <label for="inputPassword" class="form-label mt-3">Mot de passe</label>
+
+          <label
+            for="inputPassword"
+            class="form-label mt-3"
+          >
+            Mot de passe
+          </label>
+
           <input
             type="password"
             name="password"
@@ -82,26 +181,75 @@
             required
           >
 
-          <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+          <input
+            type="hidden"
+            name="_csrf_token"
+            value="{{ csrf_token('authenticate') }}"
+          >
+
 
           <div class="form-check mt-3">
-            <input type="checkbox" class="form-check-input" id="remember_me" name="_remember_me">
-            <label for="remember_me" class="form-check-label">Se souvenir de moi</label>
+
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="remember_me"
+              name="_remember_me"
+            >
+
+            <label
+              for="remember_me"
+              class="form-check-label"
+            >
+              Se souvenir de moi
+            </label>
+
           </div>
 
-          <button class="btn btn-primary mt-3" type="submit">Se connecter</button>
+
+          <button
+            class="btn btn-primary mt-3"
+            type="submit"
+          >
+            Se connecter
+          </button>
+
         </form>
 
       </div>
+
     </div>
 
-    {# ====================== PARENT (IDENTIFIANT + PASSWORD) ====================== #}
-    <div class="tab-pane fade {{ show_parent ? 'show active' : '' }}" id="parent" role="tabpanel" aria-labelledby="parent-tab">
-      <div class="card reg-card p-4 p-md-5">
-        <form method="post" action="{{ path('parent_id_login') }}">
-          <h1 class="h4 mb-3">Connexion parent</h1>
 
-          <label class="form-label" for="identifiant">Identifiant élève</label>
+    {# ====================== PARENT ====================== #}
+
+    <div
+      class="tab-pane fade {{ show_parent ? 'show active' : '' }}"
+      id="parent"
+      role="tabpanel"
+      aria-labelledby="parent-tab"
+    >
+
+      <div class="card reg-card p-4 p-md-5">
+
+        <form
+          method="post"
+          action="{{ path('parent_id_login') }}"
+        >
+
+          <h1 class="h4 mb-3">
+            Connexion parent
+          </h1>
+
+
+          <label
+            class="form-label"
+            for="identifiant"
+          >
+            Identifiant élève
+          </label>
+
           <input
             class="form-control"
             id="identifiant"
@@ -111,8 +259,17 @@
             required
           >
 
-          <label class="form-label mt-3" for="pwd_parent">Mot de passe</label>
+
+          <label
+            class="form-label mt-3"
+            for="pwd_parent"
+          >
+            Mot de passe
+          </label>
+
+
           <div class="input-group">
+
             <input
               class="form-control"
               id="pwd_parent"
@@ -122,40 +279,86 @@
               autocomplete="current-password"
               required
             >
-            <button class="btn btn-outline-secondary btn-eye" type="button" id="toggleParentPwd" aria-label="Afficher/Cacher">👁</button>
+
+            <button
+              class="btn btn-outline-secondary btn-eye"
+              type="button"
+              id="toggleParentPwd"
+              aria-label="Afficher/Cacher"
+            >
+              👁
+            </button>
+
           </div>
 
-          {# 🔐 Must match CsrfTokenBadge id in ParentIdAuthenticator #}
-          <input type="hidden" name="_csrf_token" value="{{ csrf_token('parent_id_login') }}">
+
+          <input
+            type="hidden"
+            name="_csrf_token"
+            value="{{ csrf_token('parent_id_login') }}"
+          >
+
 
           <div class="form-check mt-3">
-            <input class="form-check-input" type="checkbox" id="remember_parent" name="_remember_me">
-            <label class="form-check-label" for="remember_parent">Se souvenir de moi</label>
+
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="remember_parent"
+              name="_remember_me"
+            >
+
+            <label
+              class="form-check-label"
+              for="remember_parent"
+            >
+              Se souvenir de moi
+            </label>
+
           </div>
 
-          <button class="btn btn-success mt-3">Se connecter</button>
+
+          <button
+            class="btn btn-success mt-3"
+            type="submit"
+          >
+            Se connecter
+          </button>
+
         </form>
 
+
         <div class="alert alert-info mt-3 mb-0">
-          <strong>Astuce :</strong> L’identifiant est fourni par l’administration (classe + code unique).
+          <strong>Astuce :</strong>
+          L’identifiant est fourni par l’administration
+          (classe + code unique).
           Le mot de passe est propre à chaque élève.
         </div>
+
       </div>
+
     </div>
 
   </div>
+
 </div>
 
+
 <script>
-  // simple show/hide for parent password
+  // Show / hide parent password
   (function () {
     const btn = document.getElementById('toggleParentPwd');
     const inp = document.getElementById('pwd_parent');
+
     if (btn && inp) {
-      btn.addEventListener('click', () => {
-        inp.type = inp.type === 'password' ? 'text' : 'password';
+      btn.addEventListener('click', function () {
+        inp.type =
+          inp.type === 'password'
+            ? 'text'
+            : 'password';
       });
     }
   })();
 </script>
+
 {% endblock %}
